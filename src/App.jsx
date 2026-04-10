@@ -440,7 +440,7 @@ function Usage() {
         <div style={s.lb}>Daily Usage (GB)</div>
         <div style={{display:"flex",gap:6,alignItems:"flex-end",height:120,marginTop:8}}>
           {days.map((d,i) => <div key={i} style={{flex:1,textAlign:"center"}}>
-            <div style={{height:100,display:"flex",alignItems:"flex-end"}}><div style={{width:"100%",height:`${dl[i]/45*100}%`,background:`linear-gradient(180deg,${T}80,${A}40)`,borderRadius:"4px 4px 0 0`,transition:"height 0.5s"}} /></div>
+            <div style={{height:100,display:"flex",alignItems:"flex-end"}}><div style={{width:"100%",height:`${dl[i]/45*100}%`,background:`linear-gradient(180deg,${T}80,${A}40)`,borderRadius:"4px 4px 0 0",transition:"height 0.5s"}} /></div>
             <div style={{fontSize:9,color:G,marginTop:4}}>{d}</div>
             <div style={{fontSize:10,fontWeight:600,marginTop:1}}>{dl[i]}</div>
           </div>)}

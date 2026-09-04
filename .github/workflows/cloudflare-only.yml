@@ -1,0 +1,41 @@
+name: MyTellinex Cloudflare-only validation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Reject active Netlify configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          forbidden=(netlify.toml .netlify netlify)
+          for path in "${forbidden[@]}"; do
+            if [ -e "$path" ]; then
+              echo "ERROR: Cloudflare-only repository contains legacy Netlify path: $path"
+              exit 1
+            fi
+          done
+          if git grep -I -n -E '(^|[^[:alnum:]_])(NETLIFY_AUTH_TOKEN|NETLIFY_TOKEN|NETLIFY_SITE_ID|api\.netlify\.com|\.netlify\.app|/\.netlify/functions)([^[:alnum:]_]|$)' -- ':!docs/**' ':!README.md'; then
+            echo "ERROR: active Netlify runtime reference found"
+            exit 1
+          fi
+      - name: Install
+        run: npm ci
+      - name: Build
+        run: npm run build

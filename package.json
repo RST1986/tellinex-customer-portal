@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "check:platform-policy": "node scripts/check-platform-policy.mjs",
+    "build": "npm run check:platform-policy && vite build",
+    "preview": "vite preview",
+    "verify": "npm run build"
   },
   "dependencies": {
     "react": "^18.2.0",

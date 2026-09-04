@@ -1,3 +1,9 @@
--e node_modules
-dist
+node_modules/
+dist/
+.wrangler/
+.netlify/
+.env
+.env.*
+!.env.example
 .DS_Store
+*.log

@@ -1,0 +1,5 @@
+# Cloudflare Pages configuration for MyTellinex.
+# The live custom-domain and DNS cutover must be verified in Cloudflare separately.
+name = "tellinex-customer-portal"
+compatibility_date = "2026-09-04"
+pages_build_output_dir = "./dist"

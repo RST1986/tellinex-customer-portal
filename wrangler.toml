@@ -1,0 +1,6 @@
+# Cloudflare Pages configuration for MyTellinex.
+# The Cloudflare Pages project must use `npm run build` and publish `dist`.
+
+name = "tellinex-customer-portal"
+compatibility_date = "2026-09-04"
+pages_build_output_dir = "./dist"

@@ -1,3 +1,9 @@
--e node_modules
-dist
+node_modules/
+dist/
 .DS_Store
+.wrangler/
+.dev.vars
+.dev.vars.*
+.env
+.env.*
+!.env.example

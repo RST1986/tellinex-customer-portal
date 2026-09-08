@@ -69,17 +69,44 @@ function ActionRail({ actions, state, onWifiImprove }) {
   </section>
 }
 
+function formatBill(amount, currency) {
+  if (amount == null) return null
+  return currency ? `${currency} ${amount}` : String(amount)
+}
+
+function applyAccountBillingProjection(model, accountBilling) {
+  if (!accountBilling) return model
+
+  const bill = formatBill(accountBilling.billAmount, accountBilling.billCurrency)
+  const nextPayment = accountBilling.billDueDate
+    ? `${accountBilling.billDueDate}${accountBilling.autoPayEnabled ? ' · Auto-pay' : ''}`
+    : null
+
+  const projectedFacts = model.facts.map(([label, value]) => {
+    if (label === 'Bill' && bill) return [label, bill]
+    if (label === 'Next payment' && nextPayment) return [label, nextPayment]
+    return [label, value]
+  })
+
+  return { ...model, facts: projectedFacts }
+}
+
 const tabs = ['HOME','NETWORK','SERVICES','USAGE','BILLING','SUPPORT']
 
-export default function MyTellinexNext(){
+export default function MyTellinexNext({ accountBilling = null }){
   const [state, setState] = useState(HOME_STATES.HEALTHY)
   const [wifiSheetOpen, setWifiSheetOpen] = useState(false)
-  const model = useMemo(() => homeFixtures[state], [state])
+  const model = useMemo(
+    () => applyAccountBillingProjection(homeFixtures[state], accountBilling),
+    [state, accountBilling],
+  )
 
   const changeState = (nextState) => {
     setWifiSheetOpen(false)
     setState(nextState)
   }
+
+  const greetingName = accountBilling?.customerName?.trim()?.split(/\s+/)[0] || 'Rui'
 
   return <div className="tlx-shell">
     <header style={{borderBottom:'1px solid var(--tlx-border)'}}>
@@ -88,12 +115,12 @@ export default function MyTellinexNext(){
           <div style={{fontSize:12,color:'var(--tlx-muted)',letterSpacing:'.08em',textTransform:'uppercase'}}>MyTellinex</div>
           <div style={{fontSize:22,fontWeight:700,marginTop:4}}>Customer Home</div>
         </div>
-        <div style={{fontSize:12,color:'var(--tlx-muted)'}}>Prototype state · no production telemetry</div>
+        <div style={{fontSize:12,color:'var(--tlx-muted)'}}>Prototype health · authenticated Account/Billing projection supported</div>
       </div>
     </header>
 
     <main className="tlx-wrap" style={{paddingTop:10}}>
-      <div style={{fontSize:14,color:'var(--tlx-muted)',marginTop:16}}>Good evening, Rui</div>
+      <div style={{fontSize:14,color:'var(--tlx-muted)',marginTop:16}}>Good evening, {greetingName}</div>
       <HealthSentence text={model.health} tone={model.tone} />
       <ExceptionStack items={model.exceptions} />
       <FactRow facts={model.facts} />

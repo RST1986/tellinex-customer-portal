@@ -4,7 +4,7 @@ import App from './App'
 import MyTellinexNext from './next/MyTellinexNext'
 import './index.css'
 
-const useNext = import.meta.env.VITE_MYTELLINE_X_NEXT === 'true'
+const useNext = import.meta.env.VITE_MYTELLINEX_NEXT === 'true'
 const RootApp = useNext ? MyTellinexNext : App
 
 ReactDOM.createRoot(document.getElementById('root')).render(

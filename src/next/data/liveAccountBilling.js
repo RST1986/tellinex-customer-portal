@@ -45,6 +45,19 @@ export function projectLiveAccountBilling(model, billingFacts) {
   }
 }
 
+export function maskAccountBillingFacts(model, status) {
+  if (!model) return model
+  const replacement = status === 'loading' ? 'Loading…' : 'Unavailable'
+
+  return {
+    ...model,
+    facts: model.facts.map(([label, value]) => {
+      if (label === 'Bill' || label === 'Next payment') return [label, replacement]
+      return [label, value]
+    }),
+  }
+}
+
 export function firstName(fullName) {
   const trimmed = fullName?.trim()
   if (!trimmed) return null

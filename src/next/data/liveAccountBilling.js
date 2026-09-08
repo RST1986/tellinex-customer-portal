@@ -26,6 +26,8 @@ function formatDueDate(value) {
   }).format(date)
 }
 
+const LIVE_PENDING_LABELS = new Set(['Internet', 'Wi-Fi', 'Devices', 'Usage'])
+
 export function projectLiveAccountBilling(model, billingFacts) {
   if (!model || !billingFacts) return model
 
@@ -33,14 +35,19 @@ export function projectLiveAccountBilling(model, billingFacts) {
   const dueDate = formatDueDate(billingFacts.billDueDate)
   const nextPaymentValue = dueDate
     ? `${dueDate}${billingFacts.autoPayEnabled === true ? ' · Auto-pay' : ''}`
-    : null
+    : 'Not available'
 
   return {
     ...model,
-    facts: model.facts.map(([label, value]) => {
-      if (label === 'Bill' && billValue) return [label, billValue]
-      if (label === 'Next payment' && nextPaymentValue) return [label, nextPaymentValue]
-      return [label, value]
+    health: 'Service health integration pending',
+    tone: 'warning',
+    exceptions: [],
+    actions: [],
+    facts: model.facts.map(([label]) => {
+      if (LIVE_PENDING_LABELS.has(label)) return [label, 'Pending integration']
+      if (label === 'Bill') return [label, billValue || 'No bill available']
+      if (label === 'Next payment') return [label, nextPaymentValue]
+      return [label, 'Pending integration']
     }),
   }
 }
@@ -51,9 +58,17 @@ export function maskAccountBillingFacts(model, status) {
 
   return {
     ...model,
-    facts: model.facts.map(([label, value]) => {
+    health: status === 'loading'
+      ? 'Account and billing are loading'
+      : 'Account and billing are temporarily unavailable',
+    tone: 'warning',
+    exceptions: status === 'unavailable'
+      ? [{ title: 'Account data unavailable', detail: 'Service-health, outage and support channels remain independent of this account-data issue.' }]
+      : [],
+    actions: [],
+    facts: model.facts.map(([label]) => {
       if (label === 'Bill' || label === 'Next payment') return [label, replacement]
-      return [label, value]
+      return [label, 'Pending integration']
     }),
   }
 }

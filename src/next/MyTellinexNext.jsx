@@ -5,7 +5,7 @@ import { getSupabaseBrowserClient } from './data/supabaseClient'
 import { loadAuthenticatedAccountBilling, toHomeBillingFacts } from './data/accountBilling'
 import { firstName, maskAccountBillingFacts, projectLiveAccountBilling } from './data/liveAccountBilling'
 import { loadAuthenticatedService, toServiceSummary } from './data/service'
-import { ServicesTab, SupportTab } from './CustomerTabs'
+import { NetworkTab, ServicesTab, SupportTab } from './CustomerTabs'
 
 const toneVar = {
   success: 'var(--tlx-success)',
@@ -127,6 +127,7 @@ export default function MyTellinexNext(){
   const liveAccountBillingEnabled = import.meta.env.VITE_MYTELLINEX_LIVE_ACCOUNT_BILLING === 'true'
   const liveServiceEnabled = import.meta.env.VITE_MYTELLINEX_LIVE_SERVICE === 'true'
   const liveSupportEnabled = import.meta.env.VITE_MYTELLINEX_LIVE_SUPPORT === 'true'
+  const liveNetworkHealthEnabled = import.meta.env.VITE_MYTELLINEX_LIVE_NETWORK_HEALTH === 'true'
 
   useEffect(() => {
     let cancelled = false
@@ -187,7 +188,7 @@ export default function MyTellinexNext(){
   }, [liveServiceEnabled])
 
   const prototypeModel = useMemo(() => homeFixtures[state], [state])
-  const liveDataEnabled = liveAccountBillingEnabled || liveServiceEnabled
+  const liveDataEnabled = liveAccountBillingEnabled || liveServiceEnabled || liveNetworkHealthEnabled
   const model = useMemo(() => {
     if (liveDataEnabled && (liveBillingStatus === 'loading' || liveBillingStatus === 'unavailable' || liveBillingStatus === 'off')) {
       return maskAccountBillingFacts(prototypeModel, liveBillingStatus === 'loading' ? 'loading' : 'unavailable')
@@ -201,10 +202,11 @@ export default function MyTellinexNext(){
   if (liveBillingStatus === 'live') liveParts.push('Account + Billing live')
   if (liveServiceStatus === 'live') liveParts.push('Service live')
   if (liveSupportEnabled) liveParts.push('Support enabled')
+  if (liveNetworkHealthEnabled) liveParts.push('Network snapshot enabled')
   const runtimeLabel = liveParts.length
-    ? `${liveParts.join(' · ')} · network health pending`
+    ? `${liveParts.join(' · ')} · Home health pending producer`
     : liveDataEnabled
-      ? 'Live customer data loading/unavailable · network health pending'
+      ? 'Live customer data loading/unavailable · Home health pending producer'
       : 'Prototype state · no production telemetry'
 
   const changeState = (nextState) => {
@@ -241,9 +243,10 @@ export default function MyTellinexNext(){
 
     <main className="tlx-wrap" style={{paddingTop:10}}>
       {activeTab === 'HOME' && homeContent}
+      {activeTab === 'NETWORK' && <NetworkTab enabled={liveNetworkHealthEnabled} />}
       {activeTab === 'SERVICES' && <ServicesTab enabled={liveServiceEnabled} service={liveService} status={liveServiceStatus} />}
       {activeTab === 'SUPPORT' && <SupportTab enabled={liveSupportEnabled} />}
-      {!['HOME','SERVICES','SUPPORT'].includes(activeTab) && <PendingTab tab={activeTab} />}
+      {!['HOME','NETWORK','SERVICES','SUPPORT'].includes(activeTab) && <PendingTab tab={activeTab} />}
     </main>
 
     <nav aria-label="MyTellinex primary" style={{position:'sticky',bottom:0,borderTop:'1px solid var(--tlx-border)',background:'var(--tlx-bg)'}}>

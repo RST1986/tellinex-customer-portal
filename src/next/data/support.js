@@ -22,6 +22,19 @@ async function verifiedUserId(client) {
   return userId
 }
 
+async function linkedCustomerId(client, userId) {
+  const result = await client
+    .from('customer_auth_links')
+    .select('customer_id')
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (result.error) throw result.error
+  const customerId = result.data?.customer_id
+  if (!customerId) throw new Error('Authenticated customer link could not be verified.')
+  return customerId
+}
+
 export async function loadAuthenticatedSupportTickets(client, limit = 20) {
   assertClient(client)
   const userId = await verifiedUserId(client)
@@ -44,11 +57,14 @@ export async function createAuthenticatedSupportTicket(client, input) {
   const subject = input?.subject?.trim()
   if (!subject) throw new Error('Support ticket subject is required.')
 
+  const customerId = await linkedCustomerId(client, userId)
   const payload = {
     user_id: userId,
+    customer_id: customerId,
     subject,
     ticket_type: input?.ticketType || 'general',
-    priority: input?.priority || 'normal',
+    priority: 'normal',
+    status: 'open',
     description: input?.description?.trim() || null,
     data_source: 'my_tellinex_app',
   }

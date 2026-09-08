@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { firstName, projectLiveAccountBilling } from '../src/next/data/liveAccountBilling.js'
+import { firstName, maskAccountBillingFacts, projectLiveAccountBilling } from '../src/next/data/liveAccountBilling.js'
 
 const model = {
   health: 'Your Tellinex service is healthy',
@@ -29,9 +29,20 @@ test('only Bill and Next payment are replaced by live Account Billing facts', ()
   assert.match(projected.facts[5][1], /Auto-pay/)
 })
 
-test('missing live billing values preserve prototype facts instead of inventing data', () => {
+test('missing live billing values preserve the supplied model rather than inventing data', () => {
   const projected = projectLiveAccountBilling(model, {})
   assert.deepEqual(projected.facts, model.facts)
+})
+
+test('loading and unavailable states never expose prototype billing values', () => {
+  const loading = maskAccountBillingFacts(model, 'loading')
+  const unavailable = maskAccountBillingFacts(model, 'unavailable')
+
+  assert.deepEqual(loading.facts.slice(0, 4), model.facts.slice(0, 4))
+  assert.equal(loading.facts[4][1], 'Loading…')
+  assert.equal(loading.facts[5][1], 'Loading…')
+  assert.equal(unavailable.facts[4][1], 'Unavailable')
+  assert.equal(unavailable.facts[5][1], 'Unavailable')
 })
 
 test('firstName returns only a safe greeting token', () => {

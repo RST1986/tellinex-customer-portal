@@ -4,6 +4,7 @@ import { HOME_STATES, homeFixtures } from './homeModel'
 import { getSupabaseBrowserClient } from './data/supabaseClient'
 import { loadAuthenticatedAccountBilling, toHomeBillingFacts } from './data/accountBilling'
 import { firstName, maskAccountBillingFacts, projectLiveAccountBilling } from './data/liveAccountBilling'
+import { loadAuthenticatedService, toServiceSummary } from './data/service'
 
 const toneVar = {
   success: 'var(--tlx-success)',
@@ -39,6 +40,35 @@ function FactRow({ facts }) {
       <div style={{fontSize:12,color:'var(--tlx-muted)',marginBottom:6}}>{label}</div>
       <div style={{fontSize:17,fontWeight:700,lineHeight:1.3}}>{value}</div>
     </div>)}
+  </section>
+}
+
+function ServiceSummary({ service, status }) {
+  if (status === 'off') return null
+
+  const rows = status === 'live' && service
+    ? [
+        ['Plan', service.planName || 'Not available'],
+        ['Download', service.speedDownMbps == null ? 'Not available' : `${service.speedDownMbps} Mb/s`],
+        ['Upload', service.speedUpMbps == null ? 'Not available' : `${service.speedUpMbps} Mb/s`],
+        ['Status', service.status || 'Not available'],
+      ]
+    : [
+        ['Plan', status === 'loading' ? 'Loading…' : 'Unavailable'],
+        ['Download', '—'],
+        ['Upload', '—'],
+        ['Status', status === 'loading' ? 'Loading…' : 'Unavailable'],
+      ]
+
+  return <section aria-label="Your service" style={{marginBottom:20}}>
+    <div style={{fontSize:12,color:'var(--tlx-muted)',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:10}}>Your service</div>
+    <div className="tlx-grid">
+      {rows.map(([label,value]) => <div key={label} className="tlx-col-3" style={{background:'var(--tlx-surface)',border:'1px solid var(--tlx-border)',borderRadius:'var(--tlx-radius-lg)',padding:'var(--tlx-space-5)'}}>
+        <div style={{fontSize:12,color:'var(--tlx-muted)',marginBottom:6}}>{label}</div>
+        <div style={{fontSize:17,fontWeight:700,lineHeight:1.3}}>{value}</div>
+      </div>)}
+    </div>
+    <p style={{fontSize:12,color:'var(--tlx-muted)',margin:'10px 0 0'}}>Contracted service details only · live network health remains pending integration.</p>
   </section>
 }
 
@@ -79,7 +109,10 @@ export default function MyTellinexNext(){
   const [wifiSheetOpen, setWifiSheetOpen] = useState(false)
   const [liveBilling, setLiveBilling] = useState(null)
   const [liveBillingStatus, setLiveBillingStatus] = useState('off')
+  const [liveService, setLiveService] = useState(null)
+  const [liveServiceStatus, setLiveServiceStatus] = useState('off')
   const liveAccountBillingEnabled = import.meta.env.VITE_MYTELLINEX_LIVE_ACCOUNT_BILLING === 'true'
+  const liveServiceEnabled = import.meta.env.VITE_MYTELLINEX_LIVE_SERVICE === 'true'
 
   useEffect(() => {
     let cancelled = false
@@ -110,23 +143,54 @@ export default function MyTellinexNext(){
     return () => { cancelled = true }
   }, [liveAccountBillingEnabled])
 
-  const prototypeModel = useMemo(() => homeFixtures[state], [state])
-  const model = useMemo(() => {
-    if (liveBillingStatus === 'live') return projectLiveAccountBilling(prototypeModel, liveBilling)
-    if (liveBillingStatus === 'loading' || liveBillingStatus === 'unavailable') {
-      return maskAccountBillingFacts(prototypeModel, liveBillingStatus)
+  useEffect(() => {
+    let cancelled = false
+
+    if (!liveServiceEnabled) {
+      setLiveService(null)
+      setLiveServiceStatus('off')
+      return () => { cancelled = true }
     }
+
+    setLiveServiceStatus('loading')
+
+    const loadLiveService = async () => {
+      try {
+        const client = getSupabaseBrowserClient()
+        const result = await loadAuthenticatedService(client)
+        if (cancelled) return
+        setLiveService(toServiceSummary(result))
+        setLiveServiceStatus(result ? 'live' : 'unavailable')
+      } catch {
+        if (cancelled) return
+        setLiveService(null)
+        setLiveServiceStatus('unavailable')
+      }
+    }
+
+    loadLiveService()
+    return () => { cancelled = true }
+  }, [liveServiceEnabled])
+
+  const prototypeModel = useMemo(() => homeFixtures[state], [state])
+  const liveDataEnabled = liveAccountBillingEnabled || liveServiceEnabled
+  const model = useMemo(() => {
+    if (liveDataEnabled && (liveBillingStatus === 'loading' || liveBillingStatus === 'unavailable' || liveBillingStatus === 'off')) {
+      return maskAccountBillingFacts(prototypeModel, liveBillingStatus === 'loading' ? 'loading' : 'unavailable')
+    }
+    if (liveBillingStatus === 'live') return projectLiveAccountBilling(prototypeModel, liveBilling)
     return prototypeModel
-  }, [prototypeModel, liveBilling, liveBillingStatus])
+  }, [prototypeModel, liveBilling, liveBillingStatus, liveDataEnabled])
 
   const greetingName = liveBillingStatus === 'live' ? firstName(liveBilling?.customerName) : null
-  const runtimeLabel = liveBillingStatus === 'live'
-    ? 'Account + Billing live · service health pending'
-    : liveBillingStatus === 'loading'
-      ? 'Loading Account + Billing · service health pending'
-      : liveBillingStatus === 'unavailable'
-        ? 'Account + Billing unavailable · service health pending'
-        : 'Prototype state · no production telemetry'
+  const liveParts = []
+  if (liveBillingStatus === 'live') liveParts.push('Account + Billing live')
+  if (liveServiceStatus === 'live') liveParts.push('Service live')
+  const runtimeLabel = liveParts.length
+    ? `${liveParts.join(' · ')} · network health pending`
+    : liveDataEnabled
+      ? 'Live customer data loading/unavailable · network health pending'
+      : 'Prototype state · no production telemetry'
 
   const changeState = (nextState) => {
     setWifiSheetOpen(false)
@@ -146,12 +210,13 @@ export default function MyTellinexNext(){
 
     <main className="tlx-wrap" style={{paddingTop:10}}>
       <div style={{fontSize:14,color:'var(--tlx-muted)',marginTop:16}}>{greetingName ? `Welcome back, ${greetingName}` : 'Welcome back'}</div>
-      <HealthSentence text={model.health} tone={model.tone} />
-      <ExceptionStack items={model.exceptions} />
-      <FactRow facts={model.facts} />
-      <ActionRail actions={model.actions} state={state} onWifiImprove={() => setWifiSheetOpen(true)} />
+      <HealthSentence text={liveDataEnabled ? 'Service health pending integration' : model.health} tone={liveDataEnabled ? 'warning' : model.tone} />
+      <ExceptionStack items={liveDataEnabled ? [] : model.exceptions} />
+      <ServiceSummary service={liveService} status={liveServiceStatus} />
+      <FactRow facts={liveDataEnabled ? model.facts.map(([label,value]) => ['Internet','Wi-Fi','Devices','Usage'].includes(label) ? [label,'Pending integration'] : [label,value]) : model.facts} />
+      <ActionRail actions={liveDataEnabled ? [] : model.actions} state={state} onWifiImprove={() => setWifiSheetOpen(true)} />
 
-      {import.meta.env.DEV && !liveAccountBillingEnabled && <section aria-label="Prototype state selector" style={{borderTop:'1px solid var(--tlx-border)',paddingTop:18,marginTop:8,marginBottom:24}}>
+      {import.meta.env.DEV && !liveDataEnabled && <section aria-label="Prototype state selector" style={{borderTop:'1px solid var(--tlx-border)',paddingTop:18,marginTop:8,marginBottom:24}}>
         <div style={{fontSize:12,color:'var(--tlx-muted)',marginBottom:10}}>Prototype states</div>
         <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
           {Object.keys(homeFixtures).map(key => <button key={key} type="button" onClick={() => changeState(key)} style={{border:'1px solid var(--tlx-border)',background:key===state?'var(--tlx-primary)':'var(--tlx-surface)',color:key===state?'var(--tlx-primary-contrast)':'var(--tlx-text)',padding:'8px 10px',borderRadius:'var(--tlx-radius-md)',cursor:'pointer',fontSize:12,fontWeight:700}}>{key}</button>)}
@@ -165,6 +230,6 @@ export default function MyTellinexNext(){
       </div>
     </nav>
 
-    {import.meta.env.DEV && !liveAccountBillingEnabled && wifiSheetOpen && <WifiImprovementSheet onClose={() => setWifiSheetOpen(false)} />}
+    {import.meta.env.DEV && !liveDataEnabled && wifiSheetOpen && <WifiImprovementSheet onClose={() => setWifiSheetOpen(false)} />}
   </div>
 }

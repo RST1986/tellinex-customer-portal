@@ -1,60 +1,58 @@
 # MyTellinex Support RLS Evidence — 2026-09-08
 
-Status: PASS for authenticated customer ticket read/create contract.
+Status: PASS for authenticated customer ticket ownership; UI release remains read-only.
 
-## Previous ambiguity
+## Canonical ownership model
 
-`public.customer_tickets.customer_id` had no foreign key but customer RLS policies compared it directly with `auth.uid()`. That conflated a domain customer identifier with an Auth user identifier without schema evidence.
+Production uses two explicit identities for each customer ticket:
+- `customer_tickets.user_id` -> `auth.users.id` (`ON DELETE SET NULL`)
+- `customer_tickets.customer_id` -> `public.customers.id` (`ON DELETE SET NULL`)
 
-At normalization time:
-- ticket rows: 0
-- functions referencing `customer_tickets`: 0
-- views referencing `customer_tickets`: 0
+The Auth-to-domain relationship is independently constrained through `public.customer_auth_links`, which is one-to-one for `user_id` and `customer_id`.
 
-This allowed the ownership model to be corrected before live customer ticket data existed.
+Customer authorization deliberately requires both identities to agree. This prevents either an Auth ID alone or a domain customer ID alone from becoming sufficient authority.
 
-## Normalized ownership
+## Customer policies
 
-Production now includes:
-- `customer_tickets.user_id uuid references auth.users(id) on delete set null`
-- index on `(user_id, created_at desc)`
-- customer INSERT policy requires `user_id = (select auth.uid())`
-- customer SELECT policy requires `user_id = (select auth.uid())`
-- staff INSERT/SELECT remain separately authorized by `is_tellinex_staff()`
-- existing staff UPDATE policy remains staff-only
+Customer SELECT requires:
+- a signed-in `auth.uid()`
+- `customer_tickets.user_id = auth.uid()`
+- non-null `customer_id`
+- a matching `(user_id, customer_id)` row in `customer_auth_links`
 
-`customer_id` remains available for the domain/CRM customer relationship and is no longer used as the Auth ownership key.
+Customer INSERT requires the same ownership proof and additionally requires a safe initial state:
+- `status = 'open'`
+- `priority = 'normal'`
+- `assigned_to IS NULL`
+- `resolution IS NULL`
+- `resolved_at IS NULL`
+- `data_source = 'my_tellinex_app'`
+- creation timestamp within the policy's permitted current-time window
 
-## Data governance
-
-Customer-created tickets use the existing governed source value `my_tellinex_app`, accepted by `is_valid_data_source()`.
-
-Allowed ticket type and status constraints remain enforced by the existing database checks.
+Staff SELECT/INSERT/UPDATE remain separately authorized. No customer UPDATE or DELETE policy is added.
 
 ## Isolation proof
 
-All tests used transactions that were rolled back, so no fixture ticket remained in production.
-
-Observed:
-- owner authenticated insert using their own `user_id`: PASS
-- owner can read the inserted ticket: 1 visible
-- separate authenticated non-owner against the same rolled-back fixture: 0 visible
+Rollback-only production probes using existing Auth identities:
+- owner insert with matching Auth + customer ownership: PASS
+- distinct non-owner insert against the owner's customer: rejected with Postgres `42501` RLS violation — PASS
+- persisted probe tickets after testing: 0
 
 ## Browser contract
 
 Read fields are limited to:
-- id
-- subject
-- ticket_type
-- priority
-- status
-- created_at
-- resolved_at
+- `id`
+- `subject`
+- `ticket_type`
+- `priority`
+- `status`
+- `created_at`
+- `resolved_at`
 
-Customer ticket creation pins `user_id` to the verified JWT subject and pins `data_source` to `my_tellinex_app`.
-
-This contract does not authorize customer UPDATE, staff assignment, resolution mutation, or exposure of internal support workflow fields.
+The creation adapter now resolves the authenticated user's `customer_id` from `customer_auth_links`, then pins both `user_id` and `customer_id`, plus `status='open'`, `priority='normal'` and `data_source='my_tellinex_app'`. It does not trust customer input for initial priority or status.
 
 ## UI boundary
 
-The adapter is prepared for the SUPPORT surface. It is intentionally not wired into the Home screen because MyTellinex Home remains a customer health summary, not a helpdesk dashboard.
+`VITE_MYTELLINEX_LIVE_SUPPORT=false` by default.
+
+The current UI slice exposes only read-only Support history on the dedicated SUPPORT tab. It does not expose create, edit, close, assignment or resolution controls. MyTellinex Home remains a customer health summary rather than a helpdesk dashboard.

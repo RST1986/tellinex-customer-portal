@@ -21,7 +21,7 @@ test('requires verified JWT claims before support reads', async () => {
   await assert.rejects(() => loadAuthenticatedSupport(client), /identity could not be verified/)
 })
 
-test('loads only linked customer tickets with minimum fields', async () => {
+test('loads only linked customer tickets with minimum fields and dual ownership filters', async () => {
   const linkCalls = []
   const ticketCalls = []
   const client = {
@@ -39,6 +39,7 @@ test('loads only linked customer tickets with minimum fields', async () => {
   assert.deepEqual(linkCalls[1], ['eq', 'user_id', 'user-1'])
   assert.deepEqual(ticketCalls[0], ['select', 'id,ticket_type,subject,status,priority,created_at,resolved_at'])
   assert.deepEqual(ticketCalls[1], ['eq', 'customer_id', 'customer-1'])
+  assert.deepEqual(ticketCalls[2], ['eq', 'user_id', 'user-1'])
 })
 
 test('does not query tickets without an ownership link', async () => {

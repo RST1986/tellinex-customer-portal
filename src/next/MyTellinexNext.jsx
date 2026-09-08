@@ -5,6 +5,7 @@ import { getSupabaseBrowserClient } from './data/supabaseClient'
 import { loadAuthenticatedAccountBilling, toHomeBillingFacts } from './data/accountBilling'
 import { firstName, maskAccountBillingFacts, projectLiveAccountBilling } from './data/liveAccountBilling'
 import { loadAuthenticatedService, toServiceSummary } from './data/service'
+import { loadAuthenticatedNetworkHealth, toCustomerHealthModel } from './data/networkHealth'
 import { ServicesTab, SupportTab } from './CustomerTabs'
 
 const toneVar = {
@@ -69,7 +70,7 @@ function ServiceSummary({ service, status }) {
         <div style={{fontSize:17,fontWeight:700,lineHeight:1.3}}>{value}</div>
       </div>)}
     </div>
-    <p style={{fontSize:12,color:'var(--tlx-muted)',margin:'10px 0 0'}}>Contracted service details only · live network health remains pending integration.</p>
+    <p style={{fontSize:12,color:'var(--tlx-muted)',margin:'10px 0 0'}}>Contracted service details only · measured throughput remains a separate live contract.</p>
   </section>
 }
 
@@ -124,9 +125,12 @@ export default function MyTellinexNext(){
   const [liveBillingStatus, setLiveBillingStatus] = useState('off')
   const [liveService, setLiveService] = useState(null)
   const [liveServiceStatus, setLiveServiceStatus] = useState('off')
+  const [liveNetworkHealth, setLiveNetworkHealth] = useState(null)
+  const [liveNetworkHealthStatus, setLiveNetworkHealthStatus] = useState('off')
   const liveAccountBillingEnabled = import.meta.env.VITE_MYTELLINEX_LIVE_ACCOUNT_BILLING === 'true'
   const liveServiceEnabled = import.meta.env.VITE_MYTELLINEX_LIVE_SERVICE === 'true'
   const liveSupportEnabled = import.meta.env.VITE_MYTELLINEX_LIVE_SUPPORT === 'true'
+  const liveNetworkHealthEnabled = import.meta.env.VITE_MYTELLINEX_LIVE_NETWORK_HEALTH === 'true'
 
   useEffect(() => {
     let cancelled = false
@@ -186,8 +190,37 @@ export default function MyTellinexNext(){
     return () => { cancelled = true }
   }, [liveServiceEnabled])
 
+  useEffect(() => {
+    let cancelled = false
+
+    if (!liveNetworkHealthEnabled) {
+      setLiveNetworkHealth(null)
+      setLiveNetworkHealthStatus('off')
+      return () => { cancelled = true }
+    }
+
+    setLiveNetworkHealthStatus('loading')
+
+    const loadLiveHealth = async () => {
+      try {
+        const client = getSupabaseBrowserClient()
+        const row = await loadAuthenticatedNetworkHealth(client)
+        if (cancelled) return
+        setLiveNetworkHealth(toCustomerHealthModel(row))
+        setLiveNetworkHealthStatus(row ? 'live' : 'unavailable')
+      } catch {
+        if (cancelled) return
+        setLiveNetworkHealth(null)
+        setLiveNetworkHealthStatus('unavailable')
+      }
+    }
+
+    loadLiveHealth()
+    return () => { cancelled = true }
+  }, [liveNetworkHealthEnabled])
+
   const prototypeModel = useMemo(() => homeFixtures[state], [state])
-  const liveDataEnabled = liveAccountBillingEnabled || liveServiceEnabled
+  const liveDataEnabled = liveAccountBillingEnabled || liveServiceEnabled || liveNetworkHealthEnabled
   const model = useMemo(() => {
     if (liveDataEnabled && (liveBillingStatus === 'loading' || liveBillingStatus === 'unavailable' || liveBillingStatus === 'off')) {
       return maskAccountBillingFacts(prototypeModel, liveBillingStatus === 'loading' ? 'loading' : 'unavailable')
@@ -196,15 +229,32 @@ export default function MyTellinexNext(){
     return prototypeModel
   }, [prototypeModel, liveBilling, liveBillingStatus, liveDataEnabled])
 
+  const healthSentence = liveNetworkHealthEnabled
+    ? liveNetworkHealthStatus === 'live'
+      ? liveNetworkHealth.health
+      : liveNetworkHealthStatus === 'loading'
+        ? 'Checking your service health'
+        : 'Service health unavailable'
+    : liveDataEnabled
+      ? 'Service health pending integration'
+      : model.health
+
+  const healthTone = liveNetworkHealthEnabled && liveNetworkHealthStatus === 'live'
+    ? liveNetworkHealth.tone
+    : liveDataEnabled
+      ? 'warning'
+      : model.tone
+
   const greetingName = liveBillingStatus === 'live' ? firstName(liveBilling?.customerName) : null
   const liveParts = []
   if (liveBillingStatus === 'live') liveParts.push('Account + Billing live')
   if (liveServiceStatus === 'live') liveParts.push('Service live')
   if (liveSupportEnabled) liveParts.push('Support enabled')
+  if (liveNetworkHealthStatus === 'live') liveParts.push(`Network health ${liveNetworkHealth.state}`)
   const runtimeLabel = liveParts.length
-    ? `${liveParts.join(' · ')} · network health pending`
+    ? liveParts.join(' · ')
     : liveDataEnabled
-      ? 'Live customer data loading/unavailable · network health pending'
+      ? 'Live customer data loading/unavailable'
       : 'Prototype state · no production telemetry'
 
   const changeState = (nextState) => {
@@ -214,7 +264,7 @@ export default function MyTellinexNext(){
 
   const homeContent = <>
     <div style={{fontSize:14,color:'var(--tlx-muted)',marginTop:16}}>{greetingName ? `Welcome back, ${greetingName}` : 'Welcome back'}</div>
-    <HealthSentence text={liveDataEnabled ? 'Service health pending integration' : model.health} tone={liveDataEnabled ? 'warning' : model.tone} />
+    <HealthSentence text={healthSentence} tone={healthTone} />
     <ExceptionStack items={liveDataEnabled ? [] : model.exceptions} />
     <ServiceSummary service={liveService} status={liveServiceStatus} />
     <FactRow facts={liveDataEnabled ? model.facts.map(([label,value]) => ['Internet','Wi-Fi','Devices','Usage'].includes(label) ? [label,'Pending integration'] : [label,value]) : model.facts} />

@@ -5,6 +5,7 @@ import { getSupabaseBrowserClient } from './data/supabaseClient'
 import { loadAuthenticatedAccountBilling, toHomeBillingFacts } from './data/accountBilling'
 import { firstName, maskAccountBillingFacts, projectLiveAccountBilling } from './data/liveAccountBilling'
 import { loadAuthenticatedService, toServiceSummary } from './data/service'
+import { loadAuthenticatedSupport, toSupportSummary } from './data/support'
 
 const toneVar = {
   success: 'var(--tlx-success)',
@@ -72,6 +73,34 @@ function ServiceSummary({ service, status }) {
   </section>
 }
 
+function formatSupportDate(value) {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  return new Intl.DateTimeFormat('en-JM', { day:'numeric', month:'short', year:'numeric' }).format(date)
+}
+
+function SupportSummary({ tickets, status }) {
+  if (status === 'off') return null
+
+  return <section aria-label="Support history" style={{marginBottom:20}}>
+    <div style={{fontSize:12,color:'var(--tlx-muted)',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:10}}>Support</div>
+    {status === 'loading' && <div style={{background:'var(--tlx-surface)',border:'1px solid var(--tlx-border)',borderRadius:'var(--tlx-radius-lg)',padding:'var(--tlx-space-5)',color:'var(--tlx-muted)'}}>Loading support history…</div>}
+    {status === 'unavailable' && <div style={{background:'var(--tlx-surface)',border:'1px solid var(--tlx-border)',borderRadius:'var(--tlx-radius-lg)',padding:'var(--tlx-space-5)',color:'var(--tlx-muted)'}}>Support history unavailable.</div>}
+    {status === 'live' && tickets.length === 0 && <div style={{background:'var(--tlx-surface)',border:'1px solid var(--tlx-border)',borderRadius:'var(--tlx-radius-lg)',padding:'var(--tlx-space-5)'}}>No recent support tickets.</div>}
+    {status === 'live' && tickets.length > 0 && <div style={{display:'grid',gap:10}}>
+      {tickets.slice(0,3).map(ticket => <article key={ticket.id} style={{background:'var(--tlx-surface)',border:'1px solid var(--tlx-border)',borderRadius:'var(--tlx-radius-lg)',padding:'var(--tlx-space-5)'}}>
+        <div style={{display:'flex',justifyContent:'space-between',gap:12,alignItems:'baseline',flexWrap:'wrap'}}>
+          <h2 style={{fontSize:16,margin:0}}>{ticket.subject || 'Support ticket'}</h2>
+          <span style={{fontSize:12,color:'var(--tlx-muted)',textTransform:'capitalize'}}>{ticket.status || 'Unknown status'}</span>
+        </div>
+        <p style={{fontSize:13,color:'var(--tlx-muted)',margin:'8px 0 0',textTransform:'capitalize'}}>{ticket.type || 'general'} · {ticket.priority || 'normal'}{formatSupportDate(ticket.createdAt) ? ` · ${formatSupportDate(ticket.createdAt)}` : ''}</p>
+      </article>)}
+    </div>}
+    <p style={{fontSize:12,color:'var(--tlx-muted)',margin:'10px 0 0'}}>Read-only history in this release gate · creating or editing tickets is not enabled in this UI.</p>
+  </section>
+}
+
 function WifiImprovementSheet({ onClose }) {
   return <section role="dialog" aria-modal="true" aria-labelledby="wifi-offer-title" style={{position:'fixed',inset:0,zIndex:30,display:'grid',alignItems:'end',background:'rgba(0,0,0,.48)'}}>
     <div style={{background:'var(--tlx-bg)',borderTop:'1px solid var(--tlx-border)',padding:'24px max(20px,calc((100vw - 760px)/2)) 30px'}}>
@@ -111,20 +140,20 @@ export default function MyTellinexNext(){
   const [liveBillingStatus, setLiveBillingStatus] = useState('off')
   const [liveService, setLiveService] = useState(null)
   const [liveServiceStatus, setLiveServiceStatus] = useState('off')
+  const [liveSupport, setLiveSupport] = useState([])
+  const [liveSupportStatus, setLiveSupportStatus] = useState('off')
   const liveAccountBillingEnabled = import.meta.env.VITE_MYTELLINEX_LIVE_ACCOUNT_BILLING === 'true'
   const liveServiceEnabled = import.meta.env.VITE_MYTELLINEX_LIVE_SERVICE === 'true'
+  const liveSupportEnabled = import.meta.env.VITE_MYTELLINEX_LIVE_SUPPORT === 'true'
 
   useEffect(() => {
     let cancelled = false
-
     if (!liveAccountBillingEnabled) {
       setLiveBilling(null)
       setLiveBillingStatus('off')
       return () => { cancelled = true }
     }
-
     setLiveBillingStatus('loading')
-
     const loadLiveBilling = async () => {
       try {
         const client = getSupabaseBrowserClient()
@@ -138,22 +167,18 @@ export default function MyTellinexNext(){
         setLiveBillingStatus('unavailable')
       }
     }
-
     loadLiveBilling()
     return () => { cancelled = true }
   }, [liveAccountBillingEnabled])
 
   useEffect(() => {
     let cancelled = false
-
     if (!liveServiceEnabled) {
       setLiveService(null)
       setLiveServiceStatus('off')
       return () => { cancelled = true }
     }
-
     setLiveServiceStatus('loading')
-
     const loadLiveService = async () => {
       try {
         const client = getSupabaseBrowserClient()
@@ -167,13 +192,37 @@ export default function MyTellinexNext(){
         setLiveServiceStatus('unavailable')
       }
     }
-
     loadLiveService()
     return () => { cancelled = true }
   }, [liveServiceEnabled])
 
+  useEffect(() => {
+    let cancelled = false
+    if (!liveSupportEnabled) {
+      setLiveSupport([])
+      setLiveSupportStatus('off')
+      return () => { cancelled = true }
+    }
+    setLiveSupportStatus('loading')
+    const loadLiveSupport = async () => {
+      try {
+        const client = getSupabaseBrowserClient()
+        const result = await loadAuthenticatedSupport(client)
+        if (cancelled) return
+        setLiveSupport(toSupportSummary(result))
+        setLiveSupportStatus('live')
+      } catch {
+        if (cancelled) return
+        setLiveSupport([])
+        setLiveSupportStatus('unavailable')
+      }
+    }
+    loadLiveSupport()
+    return () => { cancelled = true }
+  }, [liveSupportEnabled])
+
   const prototypeModel = useMemo(() => homeFixtures[state], [state])
-  const liveDataEnabled = liveAccountBillingEnabled || liveServiceEnabled
+  const liveDataEnabled = liveAccountBillingEnabled || liveServiceEnabled || liveSupportEnabled
   const model = useMemo(() => {
     if (liveDataEnabled && (liveBillingStatus === 'loading' || liveBillingStatus === 'unavailable' || liveBillingStatus === 'off')) {
       return maskAccountBillingFacts(prototypeModel, liveBillingStatus === 'loading' ? 'loading' : 'unavailable')
@@ -186,6 +235,7 @@ export default function MyTellinexNext(){
   const liveParts = []
   if (liveBillingStatus === 'live') liveParts.push('Account + Billing live')
   if (liveServiceStatus === 'live') liveParts.push('Service live')
+  if (liveSupportStatus === 'live') liveParts.push('Support live')
   const runtimeLabel = liveParts.length
     ? `${liveParts.join(' · ')} · network health pending`
     : liveDataEnabled
@@ -214,6 +264,7 @@ export default function MyTellinexNext(){
       <ExceptionStack items={liveDataEnabled ? [] : model.exceptions} />
       <ServiceSummary service={liveService} status={liveServiceStatus} />
       <FactRow facts={liveDataEnabled ? model.facts.map(([label,value]) => ['Internet','Wi-Fi','Devices','Usage'].includes(label) ? [label,'Pending integration'] : [label,value]) : model.facts} />
+      <SupportSummary tickets={liveSupport} status={liveSupportStatus} />
       <ActionRail actions={liveDataEnabled ? [] : model.actions} state={state} onWifiImprove={() => setWifiSheetOpen(true)} />
 
       {import.meta.env.DEV && !liveDataEnabled && <section aria-label="Prototype state selector" style={{borderTop:'1px solid var(--tlx-border)',paddingTop:18,marginTop:8,marginBottom:24}}>

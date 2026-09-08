@@ -1,30 +1,12 @@
 const ACCOUNT_COLUMNS = [
   'full_name',
-  'phone',
-  'address',
-  'plan_name',
-  'plan_speed',
-  'plan_price',
-  'plan_status',
-  'account_id',
-  'region',
-  'auto_pay_enabled',
-  'auto_pay_last_attempt_at',
-  'auto_pay_last_error',
 ].join(',')
 
 const BILL_COLUMNS = [
-  'id',
   'amount',
   'currency',
   'status',
   'due_date',
-  'paid_date',
-  'period_start',
-  'period_end',
-  'invoice_pdf_url',
-  'description',
-  'line_items',
 ].join(',')
 
 function assertClient(client) {
@@ -70,13 +52,9 @@ export function toHomeBillingFacts(accountBilling) {
 
   return {
     customerName: accountBilling?.account?.full_name ?? null,
-    accountId: accountBilling?.account?.account_id ?? null,
-    planName: accountBilling?.account?.plan_name ?? null,
-    planSpeed: accountBilling?.account?.plan_speed ?? null,
     billAmount: latestBill?.amount ?? null,
     billCurrency: latestBill?.currency ?? null,
     billStatus: latestBill?.status ?? null,
     billDueDate: latestBill?.due_date ?? null,
-    autoPayEnabled: accountBilling?.account?.auto_pay_enabled ?? null,
   }
 }

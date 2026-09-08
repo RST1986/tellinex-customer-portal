@@ -1,12 +1,16 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import './txs.css'
 import { HOME_STATES, homeFixtures } from './homeModel'
+import { loadAuthenticatedAccountBilling, toHomeBillingFacts } from './data/accountBilling'
+import { getSupabaseBrowserClient } from './data/supabaseClient'
 
 const toneVar = {
   success: 'var(--tlx-success)',
   warning: 'var(--tlx-warning)',
   danger: 'var(--tlx-danger)',
 }
+
+const liveAccountBillingEnabled = import.meta.env.VITE_MYTELLINEX_LIVE_ACCOUNT_BILLING === 'true'
 
 const Button = ({ children, onClick, primary = false }) => (
   <button type="button" onClick={onClick} style={{border:'1px solid var(--tlx-border)',borderRadius:'var(--tlx-radius-md)',background:primary?'var(--tlx-primary)':'var(--tlx-surface-2)',color:primary?'var(--tlx-primary-contrast)':'var(--tlx-text)',padding:'10px 14px',fontWeight:700,cursor:'pointer'}}>{children}</button>
@@ -69,12 +73,96 @@ function ActionRail({ actions, state, onWifiImprove }) {
   </section>
 }
 
+function formatMoney(amount, currency) {
+  if (amount == null) return 'No bill available'
+  const numeric = Number(amount)
+  if (!Number.isFinite(numeric)) return `${currency ?? ''} ${amount}`.trim()
+
+  try {
+    return new Intl.NumberFormat('en-JM', { style:'currency', currency:currency || 'JMD', maximumFractionDigits:2 }).format(numeric)
+  } catch {
+    return `${currency ?? 'JMD'} ${numeric.toFixed(2)}`
+  }
+}
+
+function formatDate(date) {
+  if (!date) return 'Not available'
+  const parsed = new Date(`${date}T00:00:00`)
+  if (Number.isNaN(parsed.getTime())) return date
+  return new Intl.DateTimeFormat('en-JM', { day:'numeric', month:'short' }).format(parsed)
+}
+
+function buildLiveModel(billingFacts, status) {
+  if (status === 'loading') {
+    return {
+      health: 'Account and billing are loading',
+      tone: 'warning',
+      exceptions: [],
+      facts: [['Internet','Pending integration'],['Wi-Fi','Pending integration'],['Devices','Pending integration'],['Usage','Pending integration'],['Bill','Loading…'],['Next payment','Loading…']],
+      actions: [],
+    }
+  }
+
+  if (status === 'error') {
+    return {
+      health: 'Account and billing are temporarily unavailable',
+      tone: 'warning',
+      exceptions: [{ title:'Account data unavailable', detail:'Your service-health, outage and support channels remain independent of this account-data issue.' }],
+      facts: [['Internet','Pending integration'],['Wi-Fi','Pending integration'],['Devices','Pending integration'],['Usage','Pending integration'],['Bill','Unavailable'],['Next payment','Unavailable']],
+      actions: [],
+    }
+  }
+
+  return {
+    health: 'Service health integration pending',
+    tone: 'warning',
+    exceptions: [],
+    facts: [
+      ['Internet','Pending integration'],
+      ['Wi-Fi','Pending integration'],
+      ['Devices','Pending integration'],
+      ['Usage','Pending integration'],
+      ['Bill', formatMoney(billingFacts.billAmount, billingFacts.billCurrency)],
+      ['Next payment', billingFacts.billDueDate ? formatDate(billingFacts.billDueDate) : 'Not available'],
+    ],
+    actions: [],
+  }
+}
+
 const tabs = ['HOME','NETWORK','SERVICES','USAGE','BILLING','SUPPORT']
 
 export default function MyTellinexNext(){
   const [state, setState] = useState(HOME_STATES.HEALTHY)
   const [wifiSheetOpen, setWifiSheetOpen] = useState(false)
-  const model = useMemo(() => homeFixtures[state], [state])
+  const [accountBilling, setAccountBilling] = useState(null)
+  const [liveStatus, setLiveStatus] = useState(liveAccountBillingEnabled ? 'loading' : 'off')
+
+  useEffect(() => {
+    if (!liveAccountBillingEnabled) return
+    let active = true
+
+    async function loadLiveAccountBilling() {
+      try {
+        const client = getSupabaseBrowserClient()
+        const result = await loadAuthenticatedAccountBilling(client)
+        if (!active) return
+        setAccountBilling(result)
+        setLiveStatus('ready')
+      } catch (error) {
+        if (!active) return
+        console.error('MyTellinex Account/Billing load failed', error)
+        setLiveStatus('error')
+      }
+    }
+
+    loadLiveAccountBilling()
+    return () => { active = false }
+  }, [])
+
+  const prototypeModel = useMemo(() => homeFixtures[state], [state])
+  const billingFacts = useMemo(() => toHomeBillingFacts(accountBilling), [accountBilling])
+  const model = liveAccountBillingEnabled ? buildLiveModel(billingFacts, liveStatus) : prototypeModel
+  const greetingName = liveAccountBillingEnabled && billingFacts.customerName ? billingFacts.customerName.split(' ')[0] : null
 
   const changeState = (nextState) => {
     setWifiSheetOpen(false)
@@ -88,18 +176,18 @@ export default function MyTellinexNext(){
           <div style={{fontSize:12,color:'var(--tlx-muted)',letterSpacing:'.08em',textTransform:'uppercase'}}>MyTellinex</div>
           <div style={{fontSize:22,fontWeight:700,marginTop:4}}>Customer Home</div>
         </div>
-        <div style={{fontSize:12,color:'var(--tlx-muted)'}}>Prototype state · no production telemetry</div>
+        <div style={{fontSize:12,color:'var(--tlx-muted)'}}>{liveAccountBillingEnabled ? 'Account + Billing live · service health pending' : 'Prototype state · no production telemetry'}</div>
       </div>
     </header>
 
     <main className="tlx-wrap" style={{paddingTop:10}}>
-      <div style={{fontSize:14,color:'var(--tlx-muted)',marginTop:16}}>Good evening, Rui</div>
+      <div style={{fontSize:14,color:'var(--tlx-muted)',marginTop:16}}>{greetingName ? `Hello, ${greetingName}` : 'Welcome to MyTellinex'}</div>
       <HealthSentence text={model.health} tone={model.tone} />
       <ExceptionStack items={model.exceptions} />
       <FactRow facts={model.facts} />
       <ActionRail actions={model.actions} state={state} onWifiImprove={() => setWifiSheetOpen(true)} />
 
-      {import.meta.env.DEV && <section aria-label="Prototype state selector" style={{borderTop:'1px solid var(--tlx-border)',paddingTop:18,marginTop:8,marginBottom:24}}>
+      {import.meta.env.DEV && !liveAccountBillingEnabled && <section aria-label="Prototype state selector" style={{borderTop:'1px solid var(--tlx-border)',paddingTop:18,marginTop:8,marginBottom:24}}>
         <div style={{fontSize:12,color:'var(--tlx-muted)',marginBottom:10}}>Prototype states</div>
         <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
           {Object.keys(homeFixtures).map(key => <button key={key} type="button" onClick={() => changeState(key)} style={{border:'1px solid var(--tlx-border)',background:key===state?'var(--tlx-primary)':'var(--tlx-surface)',color:key===state?'var(--tlx-primary-contrast)':'var(--tlx-text)',padding:'8px 10px',borderRadius:'var(--tlx-radius-md)',cursor:'pointer',fontSize:12,fontWeight:700}}>{key}</button>)}
@@ -109,10 +197,10 @@ export default function MyTellinexNext(){
 
     <nav aria-label="MyTellinex primary" style={{position:'sticky',bottom:0,borderTop:'1px solid var(--tlx-border)',background:'var(--tlx-bg)'}}>
       <div className="tlx-wrap" style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:4,paddingTop:10,paddingBottom:10}}>
-        {tabs.map(tab => <button key={tab} type="button" style={{border:0,background:tab==='HOME'?'var(--tlx-surface-2)':'transparent',color:tab==='HOME'?'var(--tlx-text)':'var(--tlx-muted)',padding:'10px 6px',borderRadius:'var(--tlx-radius-md)',fontSize:11,fontWeight:700}}>{tab}</button>)}
+        {tabs.map(tab => <button key={tab} type="button" aria-current={tab==='HOME' ? 'page' : undefined} style={{border:0,background:tab==='HOME'?'var(--tlx-surface-2)':'transparent',color:tab==='HOME'?'var(--tlx-text)':'var(--tlx-muted)',padding:'10px 6px',borderRadius:'var(--tlx-radius-md)',fontSize:11,fontWeight:700}}>{tab}</button>)}
       </div>
     </nav>
 
-    {import.meta.env.DEV && wifiSheetOpen && <WifiImprovementSheet onClose={() => setWifiSheetOpen(false)} />}
+    {import.meta.env.DEV && !liveAccountBillingEnabled && wifiSheetOpen && <WifiImprovementSheet onClose={() => setWifiSheetOpen(false)} />}
   </div>
 }

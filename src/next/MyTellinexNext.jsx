@@ -5,6 +5,7 @@ import { getSupabaseBrowserClient } from './data/supabaseClient'
 import { loadAuthenticatedAccountBilling, toHomeBillingFacts } from './data/accountBilling'
 import { firstName, maskAccountBillingFacts, projectLiveAccountBilling } from './data/liveAccountBilling'
 import { loadAuthenticatedService, toServiceSummary } from './data/service'
+import { ServicesTab, SupportTab } from './CustomerTabs'
 
 const toneVar = {
   success: 'var(--tlx-success)',
@@ -102,9 +103,21 @@ function ActionRail({ actions, state, onWifiImprove }) {
   </section>
 }
 
+function PendingTab({ tab }) {
+  return <div style={{padding:'28px 0 90px'}}>
+    <div style={{fontSize:12,color:'var(--tlx-muted)',letterSpacing:'.08em',textTransform:'uppercase'}}>{tab}</div>
+    <h1 style={{fontSize:'clamp(28px,5vw,42px)',margin:'8px 0 10px'}}>{tab[0] + tab.slice(1).toLowerCase()}</h1>
+    <section style={{background:'var(--tlx-surface)',border:'1px solid var(--tlx-border)',borderRadius:'var(--tlx-radius-lg)',padding:'var(--tlx-space-5)',marginTop:20}}>
+      <strong>Pending approved live contract.</strong>
+      <p style={{color:'var(--tlx-muted)',lineHeight:1.55,marginBottom:0}}>MyTellinex will not substitute prototype or global operational data for customer-scoped information.</p>
+    </section>
+  </div>
+}
+
 const tabs = ['HOME','NETWORK','SERVICES','USAGE','BILLING','SUPPORT']
 
 export default function MyTellinexNext(){
+  const [activeTab, setActiveTab] = useState('HOME')
   const [state, setState] = useState(HOME_STATES.HEALTHY)
   const [wifiSheetOpen, setWifiSheetOpen] = useState(false)
   const [liveBilling, setLiveBilling] = useState(null)
@@ -113,6 +126,7 @@ export default function MyTellinexNext(){
   const [liveServiceStatus, setLiveServiceStatus] = useState('off')
   const liveAccountBillingEnabled = import.meta.env.VITE_MYTELLINEX_LIVE_ACCOUNT_BILLING === 'true'
   const liveServiceEnabled = import.meta.env.VITE_MYTELLINEX_LIVE_SERVICE === 'true'
+  const liveSupportEnabled = import.meta.env.VITE_MYTELLINEX_LIVE_SUPPORT === 'true'
 
   useEffect(() => {
     let cancelled = false
@@ -186,6 +200,7 @@ export default function MyTellinexNext(){
   const liveParts = []
   if (liveBillingStatus === 'live') liveParts.push('Account + Billing live')
   if (liveServiceStatus === 'live') liveParts.push('Service live')
+  if (liveSupportEnabled) liveParts.push('Support enabled')
   const runtimeLabel = liveParts.length
     ? `${liveParts.join(' · ')} · network health pending`
     : liveDataEnabled
@@ -197,39 +212,46 @@ export default function MyTellinexNext(){
     setState(nextState)
   }
 
+  const homeContent = <>
+    <div style={{fontSize:14,color:'var(--tlx-muted)',marginTop:16}}>{greetingName ? `Welcome back, ${greetingName}` : 'Welcome back'}</div>
+    <HealthSentence text={liveDataEnabled ? 'Service health pending integration' : model.health} tone={liveDataEnabled ? 'warning' : model.tone} />
+    <ExceptionStack items={liveDataEnabled ? [] : model.exceptions} />
+    <ServiceSummary service={liveService} status={liveServiceStatus} />
+    <FactRow facts={liveDataEnabled ? model.facts.map(([label,value]) => ['Internet','Wi-Fi','Devices','Usage'].includes(label) ? [label,'Pending integration'] : [label,value]) : model.facts} />
+    <ActionRail actions={liveDataEnabled ? [] : model.actions} state={state} onWifiImprove={() => setWifiSheetOpen(true)} />
+
+    {import.meta.env.DEV && !liveDataEnabled && <section aria-label="Prototype state selector" style={{borderTop:'1px solid var(--tlx-border)',paddingTop:18,marginTop:8,marginBottom:24}}>
+      <div style={{fontSize:12,color:'var(--tlx-muted)',marginBottom:10}}>Prototype states</div>
+      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+        {Object.keys(homeFixtures).map(key => <button key={key} type="button" onClick={() => changeState(key)} style={{border:'1px solid var(--tlx-border)',background:key===state?'var(--tlx-primary)':'var(--tlx-surface)',color:key===state?'var(--tlx-primary-contrast)':'var(--tlx-text)',padding:'8px 10px',borderRadius:'var(--tlx-radius-md)',cursor:'pointer',fontSize:12,fontWeight:700}}>{key}</button>)}
+      </div>
+    </section>}
+  </>
+
   return <div className="tlx-shell">
     <header style={{borderBottom:'1px solid var(--tlx-border)'}}>
       <div className="tlx-wrap" style={{paddingTop:18,paddingBottom:18,display:'flex',justifyContent:'space-between',alignItems:'center',gap:16}}>
         <div>
           <div style={{fontSize:12,color:'var(--tlx-muted)',letterSpacing:'.08em',textTransform:'uppercase'}}>MyTellinex</div>
-          <div style={{fontSize:22,fontWeight:700,marginTop:4}}>Customer Home</div>
+          <div style={{fontSize:22,fontWeight:700,marginTop:4}}>{activeTab === 'HOME' ? 'Customer Home' : activeTab[0] + activeTab.slice(1).toLowerCase()}</div>
         </div>
         <div style={{fontSize:12,color:'var(--tlx-muted)'}}>{runtimeLabel}</div>
       </div>
     </header>
 
     <main className="tlx-wrap" style={{paddingTop:10}}>
-      <div style={{fontSize:14,color:'var(--tlx-muted)',marginTop:16}}>{greetingName ? `Welcome back, ${greetingName}` : 'Welcome back'}</div>
-      <HealthSentence text={liveDataEnabled ? 'Service health pending integration' : model.health} tone={liveDataEnabled ? 'warning' : model.tone} />
-      <ExceptionStack items={liveDataEnabled ? [] : model.exceptions} />
-      <ServiceSummary service={liveService} status={liveServiceStatus} />
-      <FactRow facts={liveDataEnabled ? model.facts.map(([label,value]) => ['Internet','Wi-Fi','Devices','Usage'].includes(label) ? [label,'Pending integration'] : [label,value]) : model.facts} />
-      <ActionRail actions={liveDataEnabled ? [] : model.actions} state={state} onWifiImprove={() => setWifiSheetOpen(true)} />
-
-      {import.meta.env.DEV && !liveDataEnabled && <section aria-label="Prototype state selector" style={{borderTop:'1px solid var(--tlx-border)',paddingTop:18,marginTop:8,marginBottom:24}}>
-        <div style={{fontSize:12,color:'var(--tlx-muted)',marginBottom:10}}>Prototype states</div>
-        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-          {Object.keys(homeFixtures).map(key => <button key={key} type="button" onClick={() => changeState(key)} style={{border:'1px solid var(--tlx-border)',background:key===state?'var(--tlx-primary)':'var(--tlx-surface)',color:key===state?'var(--tlx-primary-contrast)':'var(--tlx-text)',padding:'8px 10px',borderRadius:'var(--tlx-radius-md)',cursor:'pointer',fontSize:12,fontWeight:700}}>{key}</button>)}
-        </div>
-      </section>}
+      {activeTab === 'HOME' && homeContent}
+      {activeTab === 'SERVICES' && <ServicesTab enabled={liveServiceEnabled} service={liveService} status={liveServiceStatus} />}
+      {activeTab === 'SUPPORT' && <SupportTab enabled={liveSupportEnabled} />}
+      {!['HOME','SERVICES','SUPPORT'].includes(activeTab) && <PendingTab tab={activeTab} />}
     </main>
 
     <nav aria-label="MyTellinex primary" style={{position:'sticky',bottom:0,borderTop:'1px solid var(--tlx-border)',background:'var(--tlx-bg)'}}>
       <div className="tlx-wrap" style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:4,paddingTop:10,paddingBottom:10}}>
-        {tabs.map(tab => <button key={tab} type="button" aria-current={tab === 'HOME' ? 'page' : undefined} style={{border:0,background:tab==='HOME'?'var(--tlx-surface-2)':'transparent',color:tab==='HOME'?'var(--tlx-text)':'var(--tlx-muted)',padding:'10px 6px',borderRadius:'var(--tlx-radius-md)',fontSize:11,fontWeight:700}}>{tab}</button>)}
+        {tabs.map(tab => <button key={tab} type="button" onClick={() => { setWifiSheetOpen(false); setActiveTab(tab) }} aria-current={tab === activeTab ? 'page' : undefined} style={{border:0,background:tab===activeTab?'var(--tlx-surface-2)':'transparent',color:tab===activeTab?'var(--tlx-text)':'var(--tlx-muted)',padding:'10px 6px',borderRadius:'var(--tlx-radius-md)',fontSize:11,fontWeight:700,cursor:'pointer'}}>{tab}</button>)}
       </div>
     </nav>
 
-    {import.meta.env.DEV && !liveDataEnabled && wifiSheetOpen && <WifiImprovementSheet onClose={() => setWifiSheetOpen(false)} />}
+    {import.meta.env.DEV && activeTab === 'HOME' && !liveDataEnabled && wifiSheetOpen && <WifiImprovementSheet onClose={() => setWifiSheetOpen(false)} />}
   </div>
 }

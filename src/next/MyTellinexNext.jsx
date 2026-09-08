@@ -92,18 +92,21 @@ export default function MyTellinexNext(){
 
     setLiveBillingStatus('loading')
 
-    loadAuthenticatedAccountBilling(getSupabaseBrowserClient())
-      .then((result) => {
+    const loadLiveBilling = async () => {
+      try {
+        const client = getSupabaseBrowserClient()
+        const result = await loadAuthenticatedAccountBilling(client)
         if (cancelled) return
         setLiveBilling(toHomeBillingFacts(result))
         setLiveBillingStatus('live')
-      })
-      .catch(() => {
+      } catch {
         if (cancelled) return
         setLiveBilling(null)
         setLiveBillingStatus('unavailable')
-      })
+      }
+    }
 
+    loadLiveBilling()
     return () => { cancelled = true }
   }, [liveAccountBillingEnabled])
 

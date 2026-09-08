@@ -4,7 +4,13 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main]
+    branches:
+      - main
+      - 'feat/**'
+      - 'fix/**'
+      - 'ci/**'
+      - 'chore/**'
+      - 'test/**'
 
 jobs:
   build:
@@ -16,16 +22,39 @@ jobs:
           - name: legacy-default
             next_flag: "false"
             live_account_billing: "false"
+            live_service: "false"
+            live_support: "false"
           - name: next-prototype
             next_flag: "true"
             live_account_billing: "false"
+            live_service: "false"
+            live_support: "false"
           - name: next-live-account-billing
             next_flag: "true"
             live_account_billing: "true"
+            live_service: "false"
+            live_support: "false"
+          - name: next-live-service
+            next_flag: "true"
+            live_account_billing: "false"
+            live_service: "true"
+            live_support: "false"
+          - name: next-live-support
+            next_flag: "true"
+            live_account_billing: "false"
+            live_service: "false"
+            live_support: "true"
+          - name: next-live-customer-core
+            next_flag: "true"
+            live_account_billing: "true"
+            live_service: "true"
+            live_support: "true"
     name: build-${{ matrix.name }}
     env:
       VITE_MYTELLINEX_NEXT: ${{ matrix.next_flag }}
       VITE_MYTELLINEX_LIVE_ACCOUNT_BILLING: ${{ matrix.live_account_billing }}
+      VITE_MYTELLINEX_LIVE_SERVICE: ${{ matrix.live_service }}
+      VITE_MYTELLINEX_LIVE_SUPPORT: ${{ matrix.live_support }}
       VITE_SUPABASE_URL: https://preview-build.invalid.supabase.co
       VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_preview_build_only
     steps:

@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises'
 const envExample = await readFile(new URL('../.env.example', import.meta.url), 'utf8')
 const homeSource = await readFile(new URL('../src/next/MyTellinexNext.jsx', import.meta.url), 'utf8')
 const tabsSource = await readFile(new URL('../src/next/CustomerTabs.jsx', import.meta.url), 'utf8')
+const billingSource = await readFile(new URL('../src/next/BillingTab.jsx', import.meta.url), 'utf8')
 
  test('live customer surfaces remain off by default', () => {
   assert.match(envExample, /^VITE_MYTELLINEX_LIVE_ACCOUNT_BILLING=false$/m)
@@ -33,4 +34,16 @@ test('Network tab treats unknown and unavailable telemetry as non-healthy', () =
 test('live Network mode suppresses prototype Home operational truth', () => {
   assert.match(homeSource, /liveAccountBillingEnabled \|\| liveServiceEnabled \|\| liveNetworkHealthEnabled/)
   assert.match(homeSource, /Service health pending integration/)
+})
+
+test('Billing tab reuses the approved Account Billing gate', () => {
+  assert.match(homeSource, /<BillingTab enabled=\{liveAccountBillingEnabled\}/)
+  assert.match(billingSource, /loadAuthenticatedAccountBilling/)
+  assert.match(billingSource, /read-only/)
+})
+
+test('Billing tab does not expose provider identifiers or payment mutation', () => {
+  assert.doesNotMatch(billingSource, /stripe_subscription_id|provider_subscription_id|invoice_pdf_url|payment_method_id/)
+  assert.doesNotMatch(billingSource, /\.insert\(|\.update\(|\.delete\(|\.upsert\(/)
+  assert.match(billingSource, /Payment and auto-pay mutation are not enabled/)
 })

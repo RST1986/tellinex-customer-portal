@@ -5,6 +5,7 @@ import { getSupabaseBrowserClient } from './data/supabaseClient'
 import { loadAuthenticatedAccountBilling, toHomeBillingFacts } from './data/accountBilling'
 import { firstName, maskAccountBillingFacts, projectLiveAccountBilling } from './data/liveAccountBilling'
 import { loadAuthenticatedService, toServiceSummary } from './data/service'
+import { loadAuthenticatedSupportTickets } from './data/support'
 
 const toneVar = {
   success: 'var(--tlx-success)',
@@ -45,7 +46,6 @@ function FactRow({ facts }) {
 
 function ServiceSummary({ service, status }) {
   if (status === 'off') return null
-
   const rows = status === 'live' && service
     ? [
         ['Plan', service.planName || 'Not available'],
@@ -69,6 +69,44 @@ function ServiceSummary({ service, status }) {
       </div>)}
     </div>
     <p style={{fontSize:12,color:'var(--tlx-muted)',margin:'10px 0 0'}}>Contracted service details only · live network health remains pending integration.</p>
+  </section>
+}
+
+function formatSupportDate(value) {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  return new Intl.DateTimeFormat('en-JM', { day:'numeric', month:'short', year:'numeric' }).format(date)
+}
+
+function SupportScreen({ tickets, status, enabled }) {
+  return <section style={{padding:'34px 0 80px'}} aria-labelledby="support-title">
+    <div style={{fontSize:12,color:'var(--tlx-muted)',letterSpacing:'.08em',textTransform:'uppercase'}}>Support</div>
+    <h1 id="support-title" style={{fontSize:'clamp(30px,6vw,44px)',margin:'8px 0 10px',letterSpacing:'-.03em'}}>Your support history</h1>
+    <p style={{color:'var(--tlx-muted)',lineHeight:1.6,maxWidth:680,margin:'0 0 22px'}}>Recent tickets linked to your authenticated Tellinex customer account. This view is read-only.</p>
+
+    {!enabled && <div style={{background:'var(--tlx-surface)',border:'1px solid var(--tlx-border)',borderRadius:'var(--tlx-radius-lg)',padding:'var(--tlx-space-5)'}}>Support history is pending controlled live integration.</div>}
+    {enabled && status === 'loading' && <div style={{background:'var(--tlx-surface)',border:'1px solid var(--tlx-border)',borderRadius:'var(--tlx-radius-lg)',padding:'var(--tlx-space-5)',color:'var(--tlx-muted)'}}>Loading support history…</div>}
+    {enabled && status === 'unavailable' && <div style={{background:'var(--tlx-surface)',border:'1px solid var(--tlx-border)',borderRadius:'var(--tlx-radius-lg)',padding:'var(--tlx-space-5)',color:'var(--tlx-muted)'}}>Support history is unavailable right now.</div>}
+    {enabled && status === 'live' && tickets.length === 0 && <div style={{background:'var(--tlx-surface)',border:'1px solid var(--tlx-border)',borderRadius:'var(--tlx-radius-lg)',padding:'var(--tlx-space-5)'}}>No recent support tickets.</div>}
+    {enabled && status === 'live' && tickets.length > 0 && <div style={{display:'grid',gap:10}}>
+      {tickets.slice(0,20).map(ticket => <article key={ticket.id} style={{background:'var(--tlx-surface)',border:'1px solid var(--tlx-border)',borderRadius:'var(--tlx-radius-lg)',padding:'var(--tlx-space-5)'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:12,flexWrap:'wrap'}}>
+          <h2 style={{fontSize:17,margin:0}}>{ticket.subject || 'Support ticket'}</h2>
+          <span style={{fontSize:12,color:'var(--tlx-muted)',textTransform:'capitalize'}}>{ticket.status || 'Unknown status'}</span>
+        </div>
+        <p style={{fontSize:13,color:'var(--tlx-muted)',margin:'8px 0 0',textTransform:'capitalize'}}>{ticket.ticket_type || 'general'} · {ticket.priority || 'normal'}{formatSupportDate(ticket.created_at) ? ` · ${formatSupportDate(ticket.created_at)}` : ''}</p>
+      </article>)}
+    </div>}
+    {enabled && <p style={{fontSize:12,color:'var(--tlx-muted)',margin:'12px 0 0'}}>Creating, editing and closing tickets are not enabled in this release gate.</p>}
+  </section>
+}
+
+function PendingScreen({ tab }) {
+  return <section style={{padding:'34px 0 80px'}}>
+    <div style={{fontSize:12,color:'var(--tlx-muted)',letterSpacing:'.08em',textTransform:'uppercase'}}>{tab}</div>
+    <h1 style={{fontSize:'clamp(30px,6vw,44px)',margin:'8px 0 10px',letterSpacing:'-.03em'}}>Pending integration</h1>
+    <p style={{color:'var(--tlx-muted)',lineHeight:1.6,maxWidth:680}}>This customer surface is not yet backed by an approved live data contract.</p>
   </section>
 }
 
@@ -105,26 +143,27 @@ function ActionRail({ actions, state, onWifiImprove }) {
 const tabs = ['HOME','NETWORK','SERVICES','USAGE','BILLING','SUPPORT']
 
 export default function MyTellinexNext(){
+  const [activeTab, setActiveTab] = useState('HOME')
   const [state, setState] = useState(HOME_STATES.HEALTHY)
   const [wifiSheetOpen, setWifiSheetOpen] = useState(false)
   const [liveBilling, setLiveBilling] = useState(null)
   const [liveBillingStatus, setLiveBillingStatus] = useState('off')
   const [liveService, setLiveService] = useState(null)
   const [liveServiceStatus, setLiveServiceStatus] = useState('off')
+  const [liveSupportTickets, setLiveSupportTickets] = useState([])
+  const [liveSupportStatus, setLiveSupportStatus] = useState('off')
   const liveAccountBillingEnabled = import.meta.env.VITE_MYTELLINEX_LIVE_ACCOUNT_BILLING === 'true'
   const liveServiceEnabled = import.meta.env.VITE_MYTELLINEX_LIVE_SERVICE === 'true'
+  const liveSupportEnabled = import.meta.env.VITE_MYTELLINEX_LIVE_SUPPORT === 'true'
 
   useEffect(() => {
     let cancelled = false
-
     if (!liveAccountBillingEnabled) {
       setLiveBilling(null)
       setLiveBillingStatus('off')
       return () => { cancelled = true }
     }
-
     setLiveBillingStatus('loading')
-
     const loadLiveBilling = async () => {
       try {
         const client = getSupabaseBrowserClient()
@@ -138,22 +177,18 @@ export default function MyTellinexNext(){
         setLiveBillingStatus('unavailable')
       }
     }
-
     loadLiveBilling()
     return () => { cancelled = true }
   }, [liveAccountBillingEnabled])
 
   useEffect(() => {
     let cancelled = false
-
     if (!liveServiceEnabled) {
       setLiveService(null)
       setLiveServiceStatus('off')
       return () => { cancelled = true }
     }
-
     setLiveServiceStatus('loading')
-
     const loadLiveService = async () => {
       try {
         const client = getSupabaseBrowserClient()
@@ -167,13 +202,37 @@ export default function MyTellinexNext(){
         setLiveServiceStatus('unavailable')
       }
     }
-
     loadLiveService()
     return () => { cancelled = true }
   }, [liveServiceEnabled])
 
+  useEffect(() => {
+    let cancelled = false
+    if (!liveSupportEnabled) {
+      setLiveSupportTickets([])
+      setLiveSupportStatus('off')
+      return () => { cancelled = true }
+    }
+    setLiveSupportStatus('loading')
+    const loadSupport = async () => {
+      try {
+        const client = getSupabaseBrowserClient()
+        const result = await loadAuthenticatedSupportTickets(client, 20)
+        if (cancelled) return
+        setLiveSupportTickets(result)
+        setLiveSupportStatus('live')
+      } catch {
+        if (cancelled) return
+        setLiveSupportTickets([])
+        setLiveSupportStatus('unavailable')
+      }
+    }
+    loadSupport()
+    return () => { cancelled = true }
+  }, [liveSupportEnabled])
+
   const prototypeModel = useMemo(() => homeFixtures[state], [state])
-  const liveDataEnabled = liveAccountBillingEnabled || liveServiceEnabled
+  const liveDataEnabled = liveAccountBillingEnabled || liveServiceEnabled || liveSupportEnabled
   const model = useMemo(() => {
     if (liveDataEnabled && (liveBillingStatus === 'loading' || liveBillingStatus === 'unavailable' || liveBillingStatus === 'off')) {
       return maskAccountBillingFacts(prototypeModel, liveBillingStatus === 'loading' ? 'loading' : 'unavailable')
@@ -186,6 +245,7 @@ export default function MyTellinexNext(){
   const liveParts = []
   if (liveBillingStatus === 'live') liveParts.push('Account + Billing live')
   if (liveServiceStatus === 'live') liveParts.push('Service live')
+  if (liveSupportStatus === 'live') liveParts.push('Support live')
   const runtimeLabel = liveParts.length
     ? `${liveParts.join(' · ')} · network health pending`
     : liveDataEnabled
@@ -196,6 +256,21 @@ export default function MyTellinexNext(){
     setWifiSheetOpen(false)
     setState(nextState)
   }
+
+  const home = <>
+    <div style={{fontSize:14,color:'var(--tlx-muted)',marginTop:16}}>{greetingName ? `Welcome back, ${greetingName}` : 'Welcome back'}</div>
+    <HealthSentence text={liveDataEnabled ? 'Service health pending integration' : model.health} tone={liveDataEnabled ? 'warning' : model.tone} />
+    <ExceptionStack items={liveDataEnabled ? [] : model.exceptions} />
+    <ServiceSummary service={liveService} status={liveServiceStatus} />
+    <FactRow facts={liveDataEnabled ? model.facts.map(([label,value]) => ['Internet','Wi-Fi','Devices','Usage'].includes(label) ? [label,'Pending integration'] : [label,value]) : model.facts} />
+    <ActionRail actions={liveDataEnabled ? [] : model.actions} state={state} onWifiImprove={() => setWifiSheetOpen(true)} />
+    {import.meta.env.DEV && !liveDataEnabled && <section aria-label="Prototype state selector" style={{borderTop:'1px solid var(--tlx-border)',paddingTop:18,marginTop:8,marginBottom:24}}>
+      <div style={{fontSize:12,color:'var(--tlx-muted)',marginBottom:10}}>Prototype states</div>
+      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+        {Object.keys(homeFixtures).map(key => <button key={key} type="button" onClick={() => changeState(key)} style={{border:'1px solid var(--tlx-border)',background:key===state?'var(--tlx-primary)':'var(--tlx-surface)',color:key===state?'var(--tlx-primary-contrast)':'var(--tlx-text)',padding:'8px 10px',borderRadius:'var(--tlx-radius-md)',cursor:'pointer',fontSize:12,fontWeight:700}}>{key}</button>)}
+      </div>
+    </section>}
+  </>
 
   return <div className="tlx-shell">
     <header style={{borderBottom:'1px solid var(--tlx-border)'}}>
@@ -209,24 +284,14 @@ export default function MyTellinexNext(){
     </header>
 
     <main className="tlx-wrap" style={{paddingTop:10}}>
-      <div style={{fontSize:14,color:'var(--tlx-muted)',marginTop:16}}>{greetingName ? `Welcome back, ${greetingName}` : 'Welcome back'}</div>
-      <HealthSentence text={liveDataEnabled ? 'Service health pending integration' : model.health} tone={liveDataEnabled ? 'warning' : model.tone} />
-      <ExceptionStack items={liveDataEnabled ? [] : model.exceptions} />
-      <ServiceSummary service={liveService} status={liveServiceStatus} />
-      <FactRow facts={liveDataEnabled ? model.facts.map(([label,value]) => ['Internet','Wi-Fi','Devices','Usage'].includes(label) ? [label,'Pending integration'] : [label,value]) : model.facts} />
-      <ActionRail actions={liveDataEnabled ? [] : model.actions} state={state} onWifiImprove={() => setWifiSheetOpen(true)} />
-
-      {import.meta.env.DEV && !liveDataEnabled && <section aria-label="Prototype state selector" style={{borderTop:'1px solid var(--tlx-border)',paddingTop:18,marginTop:8,marginBottom:24}}>
-        <div style={{fontSize:12,color:'var(--tlx-muted)',marginBottom:10}}>Prototype states</div>
-        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-          {Object.keys(homeFixtures).map(key => <button key={key} type="button" onClick={() => changeState(key)} style={{border:'1px solid var(--tlx-border)',background:key===state?'var(--tlx-primary)':'var(--tlx-surface)',color:key===state?'var(--tlx-primary-contrast)':'var(--tlx-text)',padding:'8px 10px',borderRadius:'var(--tlx-radius-md)',cursor:'pointer',fontSize:12,fontWeight:700}}>{key}</button>)}
-        </div>
-      </section>}
+      {activeTab === 'HOME' ? home : activeTab === 'SUPPORT'
+        ? <SupportScreen tickets={liveSupportTickets} status={liveSupportStatus} enabled={liveSupportEnabled} />
+        : <PendingScreen tab={activeTab} />}
     </main>
 
     <nav aria-label="MyTellinex primary" style={{position:'sticky',bottom:0,borderTop:'1px solid var(--tlx-border)',background:'var(--tlx-bg)'}}>
       <div className="tlx-wrap" style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:4,paddingTop:10,paddingBottom:10}}>
-        {tabs.map(tab => <button key={tab} type="button" aria-current={tab === 'HOME' ? 'page' : undefined} style={{border:0,background:tab==='HOME'?'var(--tlx-surface-2)':'transparent',color:tab==='HOME'?'var(--tlx-text)':'var(--tlx-muted)',padding:'10px 6px',borderRadius:'var(--tlx-radius-md)',fontSize:11,fontWeight:700}}>{tab}</button>)}
+        {tabs.map(tab => <button key={tab} type="button" onClick={() => { setWifiSheetOpen(false); setActiveTab(tab) }} aria-current={tab === activeTab ? 'page' : undefined} style={{border:0,background:tab===activeTab?'var(--tlx-surface-2)':'transparent',color:tab===activeTab?'var(--tlx-text)':'var(--tlx-muted)',padding:'10px 6px',borderRadius:'var(--tlx-radius-md)',fontSize:11,fontWeight:700,cursor:'pointer'}}>{tab}</button>)}
       </div>
     </nav>
 

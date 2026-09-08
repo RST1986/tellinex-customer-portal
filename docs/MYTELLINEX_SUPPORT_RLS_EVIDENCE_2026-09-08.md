@@ -1,48 +1,53 @@
 # MyTellinex Support RLS Evidence — 2026-09-08
 
-Status: PASS for authenticated customer ticket read/create contract.
+Status: PASS for authenticated customer ticket read/create isolation.
 
-## Previous ambiguity
+## Production project
 
-`public.customer_tickets.customer_id` had no foreign key but customer RLS policies compared it directly with `auth.uid()`. That conflated a domain customer identifier with an Auth user identifier without schema evidence.
+Supabase project: `egztpclpcnizcdtfugsv`.
 
-At normalization time:
-- ticket rows: 0
-- functions referencing `customer_tickets`: 0
-- views referencing `customer_tickets`: 0
+## Ownership model
 
-This allowed the ownership model to be corrected before live customer ticket data existed.
+`public.customer_tickets` now keeps the Auth identity and the domain customer identity distinct:
+- `user_id` identifies the Supabase Auth user
+- `customer_id` identifies the domain/CRM customer
+- `public.customer_auth_links` proves the one-to-one Auth user -> domain customer relationship
 
-## Normalized ownership
+Customer access requires both identities to agree through the ownership bridge. `customer_id` is not treated as an Auth ID.
 
-Production now includes:
-- `customer_tickets.user_id uuid references auth.users(id) on delete set null`
-- index on `(user_id, created_at desc)`
-- customer INSERT policy requires `user_id = (select auth.uid())`
-- customer SELECT policy requires `user_id = (select auth.uid())`
-- staff INSERT/SELECT remain separately authorized by `is_tellinex_staff()`
-- existing staff UPDATE policy remains staff-only
+## Customer SELECT policy
 
-`customer_id` remains available for the domain/CRM customer relationship and is no longer used as the Auth ownership key.
+Customer reads require all of:
+- `auth.uid()` is present
+- `user_id = auth.uid()`
+- `customer_id IS NOT NULL`
+- an RLS-visible `customer_auth_links` row maps that same `auth.uid()` to the ticket's `customer_id`
 
-## Data governance
+Staff SELECT remains separately authorized through `is_tellinex_staff()`.
 
-Customer-created tickets use the existing governed source value `my_tellinex_app`, accepted by `is_valid_data_source()`.
+## Customer INSERT policy
 
-Allowed ticket type and status constraints remain enforced by the existing database checks.
+Customer creation requires the same dual ownership proof and additionally constrains customer-controlled workflow state:
+- `status = open`
+- `priority = normal`
+- `assigned_to IS NULL`
+- `resolution IS NULL`
+- `resolved_at IS NULL`
+- `data_source = my_tellinex_app`
+- `created_at` must be within the policy's fresh server-time window
 
-## Isolation proof
-
-All tests used transactions that were rolled back, so no fixture ticket remained in production.
-
-Observed:
-- owner authenticated insert using their own `user_id`: PASS
-- owner can read the inserted ticket: 1 visible
-- separate authenticated non-owner against the same rolled-back fixture: 0 visible
+Staff INSERT remains separately authorized. UPDATE remains staff-only.
 
 ## Browser contract
 
-Read fields are limited to:
+`src/next/data/support.js`:
+- verifies identity with `auth.getClaims()`
+- resolves the owned domain customer through `customer_auth_links`
+- submits both the verified `user_id` and owned `customer_id`
+- pins `priority` to `normal`
+- pins `data_source` to `my_tellinex_app`
+
+Customer-facing reads select only:
 - id
 - subject
 - ticket_type
@@ -51,10 +56,39 @@ Read fields are limited to:
 - created_at
 - resolved_at
 
-Customer ticket creation pins `user_id` to the verified JWT subject and pins `data_source` to `my_tellinex_app`.
+The browser does not select staff assignment, resolution text, customer contact fields, or other internal workflow data in this slice.
 
-This contract does not authorize customer UPDATE, staff assignment, resolution mutation, or exposure of internal support workflow fields.
+## Positive insert proof
 
-## UI boundary
+A transaction-only test assumed the real owning Auth identity and created a temporary normal `general` ticket through the production RLS path.
 
-The adapter is prepared for the SUPPORT surface. It is intentionally not wired into the Home screen because MyTellinex Home remains a customer health summary, not a helpdesk dashboard.
+Observed before rollback:
+- inserted rows: 1
+- status = `open`: PASS
+- priority = `normal`: PASS
+- assigned_to/resolution/resolved_at all null: PASS
+- data_source = `my_tellinex_app`: PASS
+
+The transaction was rolled back.
+
+## Cross-customer negative proof
+
+A distinct existing Auth identity without the ownership link was used for negative testing.
+
+First, under that identity the ownership bridge itself exposed zero rows, so a normal bridge-driven insert produced no candidate customer.
+
+A stronger adversarial probe then deliberately supplied the real foreign `customer_id` while setting `user_id` to the non-owner Auth identity. PostgreSQL rejected the insert with SQLSTATE `42501`: new row violates row-level security policy for `customer_tickets`.
+
+Result: PASS.
+
+## Persistence check
+
+After both probes, production contained zero rows with either test subject. No test ticket was persisted.
+
+## Release boundary
+
+This evidence authorizes the current MyTellinex customer Support read/create contract only. It does not authorize customer-side UPDATE, reassignment, priority escalation, resolution editing, staff fields, or bypassing `customer_auth_links`.
+
+The SUPPORT surface may use this contract behind its feature gate. Home remains a customer health summary rather than a helpdesk dashboard.
+
+Existing project-wide Supabase findings remain separate work and are not waived by this PASS.

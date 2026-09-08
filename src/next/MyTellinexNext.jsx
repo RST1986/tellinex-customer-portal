@@ -6,6 +6,7 @@ import { loadAuthenticatedAccountBilling, toHomeBillingFacts } from './data/acco
 import { firstName, maskAccountBillingFacts, projectLiveAccountBilling } from './data/liveAccountBilling'
 import { loadAuthenticatedService, toServiceSummary } from './data/service'
 import { NetworkTab, ServicesTab, SupportTab } from './CustomerTabs'
+import BillingTab from './BillingTab'
 
 const toneVar = {
   success: 'var(--tlx-success)',
@@ -245,8 +246,9 @@ export default function MyTellinexNext(){
       {activeTab === 'HOME' && homeContent}
       {activeTab === 'NETWORK' && <NetworkTab enabled={liveNetworkHealthEnabled} />}
       {activeTab === 'SERVICES' && <ServicesTab enabled={liveServiceEnabled} service={liveService} status={liveServiceStatus} />}
+      {activeTab === 'BILLING' && <BillingTab enabled={liveAccountBillingEnabled} />}
       {activeTab === 'SUPPORT' && <SupportTab enabled={liveSupportEnabled} />}
-      {!['HOME','NETWORK','SERVICES','SUPPORT'].includes(activeTab) && <PendingTab tab={activeTab} />}
+      {!['HOME','NETWORK','SERVICES','BILLING','SUPPORT'].includes(activeTab) && <PendingTab tab={activeTab} />}
     </main>
 
     <nav aria-label="MyTellinex primary" style={{position:'sticky',bottom:0,borderTop:'1px solid var(--tlx-border)',background:'var(--tlx-bg)'}}>

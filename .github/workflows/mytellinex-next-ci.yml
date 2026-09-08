@@ -12,9 +12,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        next_flag: ["false", "true"]
+        include:
+          - name: legacy-default
+            next_flag: "false"
+            live_account_billing: "false"
+          - name: next-prototype
+            next_flag: "true"
+            live_account_billing: "false"
+          - name: next-live-account-billing
+            next_flag: "true"
+            live_account_billing: "true"
+    name: build-${{ matrix.name }}
     env:
       VITE_MYTELLINEX_NEXT: ${{ matrix.next_flag }}
+      VITE_MYTELLINEX_LIVE_ACCOUNT_BILLING: ${{ matrix.live_account_billing }}
+      VITE_SUPABASE_URL: https://preview-build.invalid.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_preview_build_only
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

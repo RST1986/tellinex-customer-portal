@@ -1,0 +1,5 @@
+export function NetworkHealth({ status='healthy', detail, updatedAt }) {
+  const label=status==='degraded'?'Degraded':status==='outage'?'Outage':'Healthy';
+  const color=status==='degraded'?'var(--tlx-warning)':status==='outage'?'var(--tlx-danger)':'var(--tlx-success)';
+  return <section aria-live="polite" style={{background:'var(--tlx-surface)',border:'1px solid var(--tlx-border)',borderRadius:'var(--tlx-radius-lg)',padding:'var(--tlx-space-5)'}}><div style={{display:'flex',justifyContent:'space-between',gap:16}}><div><div style={{color:'var(--tlx-muted)',fontSize:12}}>Network health</div><div style={{display:'flex',alignItems:'center',gap:8,marginTop:6}}><span aria-hidden="true" style={{width:8,height:8,borderRadius:999,background:color}}/><strong style={{fontSize:18}}>{label}</strong></div></div>{updatedAt&&<time style={{color:'var(--tlx-muted)',fontSize:12}}>{updatedAt}</time>}</div>{detail&&<p style={{margin:'16px 0 0',color:'var(--tlx-muted)',fontSize:13,lineHeight:1.5}}>{detail}</p>}</section>
+}

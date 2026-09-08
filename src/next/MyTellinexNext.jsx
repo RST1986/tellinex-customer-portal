@@ -3,7 +3,7 @@ import './txs.css'
 import { HOME_STATES, homeFixtures } from './homeModel'
 import { getSupabaseBrowserClient } from './data/supabaseClient'
 import { loadAuthenticatedAccountBilling, toHomeBillingFacts } from './data/accountBilling'
-import { firstName, projectLiveAccountBilling } from './data/liveAccountBilling'
+import { firstName, maskAccountBillingFacts, projectLiveAccountBilling } from './data/liveAccountBilling'
 
 const toneVar = {
   success: 'var(--tlx-success)',
@@ -108,12 +108,15 @@ export default function MyTellinexNext(){
   }, [liveAccountBillingEnabled])
 
   const prototypeModel = useMemo(() => homeFixtures[state], [state])
-  const model = useMemo(
-    () => liveBillingStatus === 'live'
-      ? projectLiveAccountBilling(prototypeModel, liveBilling)
-      : prototypeModel,
-    [prototypeModel, liveBilling, liveBillingStatus],
-  )
+  const model = useMemo(() => {
+    if (liveBillingStatus === 'live') {
+      return projectLiveAccountBilling(prototypeModel, liveBilling)
+    }
+    if (liveBillingStatus === 'loading' || liveBillingStatus === 'unavailable') {
+      return maskAccountBillingFacts(prototypeModel, liveBillingStatus)
+    }
+    return prototypeModel
+  }, [prototypeModel, liveBilling, liveBillingStatus])
 
   const greetingName = liveBillingStatus === 'live' ? firstName(liveBilling?.customerName) : null
   const runtimeLabel = liveBillingStatus === 'live'
@@ -121,7 +124,7 @@ export default function MyTellinexNext(){
     : liveBillingStatus === 'loading'
       ? 'Prototype health · loading Account/Billing'
       : liveBillingStatus === 'unavailable'
-        ? 'Prototype state · Account/Billing unavailable'
+        ? 'Prototype health · Account/Billing unavailable'
         : 'Prototype state · no production telemetry'
 
   const changeState = (nextState) => {

@@ -112,9 +112,7 @@ export default function MyTellinexNext(){
 
   const prototypeModel = useMemo(() => homeFixtures[state], [state])
   const model = useMemo(() => {
-    if (liveBillingStatus === 'live') {
-      return projectLiveAccountBilling(prototypeModel, liveBilling)
-    }
+    if (liveBillingStatus === 'live') return projectLiveAccountBilling(prototypeModel, liveBilling)
     if (liveBillingStatus === 'loading' || liveBillingStatus === 'unavailable') {
       return maskAccountBillingFacts(prototypeModel, liveBillingStatus)
     }
@@ -123,11 +121,11 @@ export default function MyTellinexNext(){
 
   const greetingName = liveBillingStatus === 'live' ? firstName(liveBilling?.customerName) : null
   const runtimeLabel = liveBillingStatus === 'live'
-    ? 'Prototype health · live Account/Billing'
+    ? 'Account + Billing live · service health pending'
     : liveBillingStatus === 'loading'
-      ? 'Prototype health · loading Account/Billing'
+      ? 'Loading Account + Billing · service health pending'
       : liveBillingStatus === 'unavailable'
-        ? 'Prototype health · Account/Billing unavailable'
+        ? 'Account + Billing unavailable · service health pending'
         : 'Prototype state · no production telemetry'
 
   const changeState = (nextState) => {
@@ -153,7 +151,7 @@ export default function MyTellinexNext(){
       <FactRow facts={model.facts} />
       <ActionRail actions={model.actions} state={state} onWifiImprove={() => setWifiSheetOpen(true)} />
 
-      {import.meta.env.DEV && <section aria-label="Prototype state selector" style={{borderTop:'1px solid var(--tlx-border)',paddingTop:18,marginTop:8,marginBottom:24}}>
+      {import.meta.env.DEV && !liveAccountBillingEnabled && <section aria-label="Prototype state selector" style={{borderTop:'1px solid var(--tlx-border)',paddingTop:18,marginTop:8,marginBottom:24}}>
         <div style={{fontSize:12,color:'var(--tlx-muted)',marginBottom:10}}>Prototype states</div>
         <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
           {Object.keys(homeFixtures).map(key => <button key={key} type="button" onClick={() => changeState(key)} style={{border:'1px solid var(--tlx-border)',background:key===state?'var(--tlx-primary)':'var(--tlx-surface)',color:key===state?'var(--tlx-primary-contrast)':'var(--tlx-text)',padding:'8px 10px',borderRadius:'var(--tlx-radius-md)',cursor:'pointer',fontSize:12,fontWeight:700}}>{key}</button>)}
@@ -167,6 +165,6 @@ export default function MyTellinexNext(){
       </div>
     </nav>
 
-    {import.meta.env.DEV && wifiSheetOpen && <WifiImprovementSheet onClose={() => setWifiSheetOpen(false)} />}
+    {import.meta.env.DEV && !liveAccountBillingEnabled && wifiSheetOpen && <WifiImprovementSheet onClose={() => setWifiSheetOpen(false)} />}
   </div>
 }

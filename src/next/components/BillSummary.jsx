@@ -1,0 +1,3 @@
+export function BillSummary({ amount, currency='J$', dueLabel, autopayLabel, action }) {
+  return <section style={{background:'var(--tlx-surface)',border:'1px solid var(--tlx-border)',borderRadius:'var(--tlx-radius-lg)',padding:'var(--tlx-space-5)'}}><div style={{color:'var(--tlx-muted)',fontSize:12,marginBottom:6}}>Next bill</div><div style={{fontSize:30,fontWeight:700,letterSpacing:'-0.02em'}}>{currency}{amount}</div><div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:12,color:'var(--tlx-muted)',fontSize:12}}>{dueLabel&&<span>{dueLabel}</span>}{dueLabel&&autopayLabel&&<span aria-hidden="true">•</span>}{autopayLabel&&<span>{autopayLabel}</span>}</div>{action&&<div style={{marginTop:20}}>{action}</div>}</section>
+}

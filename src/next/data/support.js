@@ -8,6 +8,14 @@ const SUPPORT_COLUMNS = [
   'resolved_at',
 ].join(',')
 
+const ALLOWED_TICKET_TYPES = new Set([
+  'outage',
+  'slow_speed',
+  'billing',
+  'installation',
+  'general',
+])
+
 function assertClient(client) {
   if (!client?.auth?.getClaims || !client?.from) {
     throw new Error('A configured Supabase client is required.')
@@ -20,6 +28,20 @@ async function verifiedUserId(client) {
   const userId = data?.claims?.sub
   if (!userId) throw new Error('Authenticated user identity could not be verified.')
   return userId
+}
+
+async function ownedCustomerId(client, userId) {
+  const result = await client
+    .from('customer_auth_links')
+    .select('customer_id')
+    .eq('user_id', userId)
+    .limit(1)
+    .maybeSingle()
+
+  if (result.error) throw result.error
+  const customerId = result.data?.customer_id
+  if (!customerId) throw new Error('Customer ownership link is unavailable.')
+  return customerId
 }
 
 export async function loadAuthenticatedSupportTickets(client, limit = 20) {
@@ -44,11 +66,16 @@ export async function createAuthenticatedSupportTicket(client, input) {
   const subject = input?.subject?.trim()
   if (!subject) throw new Error('Support ticket subject is required.')
 
+  const customerId = await ownedCustomerId(client, userId)
+  const requestedType = input?.ticketType || 'general'
+  const ticketType = ALLOWED_TICKET_TYPES.has(requestedType) ? requestedType : 'general'
+
   const payload = {
+    customer_id: customerId,
     user_id: userId,
     subject,
-    ticket_type: input?.ticketType || 'general',
-    priority: input?.priority || 'normal',
+    ticket_type: ticketType,
+    priority: 'normal',
     description: input?.description?.trim() || null,
     data_source: 'my_tellinex_app',
   }

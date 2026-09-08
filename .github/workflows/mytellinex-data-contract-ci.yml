@@ -9,12 +9,21 @@ on:
 jobs:
   contract-tests:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        live_account_billing: ["false", "true"]
+    env:
+      VITE_MYTELLINEX_NEXT: "true"
+      VITE_MYTELLINEX_LIVE_ACCOUNT_BILLING: ${{ matrix.live_account_billing }}
+      VITE_SUPABASE_URL: https://example.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_only
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: node --test tests/accountBilling.contract.test.mjs
+      - run: node --test tests/accountBilling.contract.test.mjs tests/supabaseClient.contract.test.mjs
       - run: npm ci
       - run: npm run build

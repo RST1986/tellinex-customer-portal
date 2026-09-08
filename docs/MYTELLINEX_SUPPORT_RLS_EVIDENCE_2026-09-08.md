@@ -71,3 +71,7 @@ It does not expose `assigned_to`, internal resolution detail, customer email/nam
 `VITE_MYTELLINEX_LIVE_SUPPORT=false` by default.
 
 This slice exposes read-only customer ticket history only. Although INSERT authorization has been proved, the customer-facing create-ticket control is deliberately not exposed by this slice.
+
+## Merge gate
+
+The PR must pass the permanent high-severity dependency audit, all data-contract tests, the production build, MyTellinex Next CI and Five-State Home CI before merge.

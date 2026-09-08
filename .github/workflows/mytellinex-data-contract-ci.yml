@@ -24,6 +24,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: node --test tests/accountBilling.contract.test.mjs tests/supabaseClient.contract.test.mjs
       - run: npm ci
+      - run: node --test tests/accountBilling.contract.test.mjs tests/supabaseClient.contract.test.mjs
       - run: npm run build

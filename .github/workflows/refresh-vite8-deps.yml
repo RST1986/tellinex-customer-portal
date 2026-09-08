@@ -1,0 +1,32 @@
+name: Refresh Vite 8 Dependencies
+
+on:
+  push:
+    branches: [chore/mytellinex-dependency-audit]
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chore/mytellinex-dependency-audit
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Upgrade Vite toolchain with exact pins
+        run: |
+          npm install --save-dev --save-exact vite@8.2.2 @vitejs/plugin-react@6.1.1
+          npm audit signatures
+      - name: Commit package metadata and lockfile
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "chore: upgrade Vite toolchain to secure versions" || exit 0
+          git push origin HEAD:chore/mytellinex-dependency-audit

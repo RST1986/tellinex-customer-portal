@@ -18,10 +18,13 @@ test('scopes profile and bill reads to the verified user id', () => {
   assert.match(source, /from\('customer_bills'\)/)
 })
 
-test('does not request provider secret identifiers', () => {
-  assert.doesNotMatch(source, /stripe_customer_id/i)
-  assert.doesNotMatch(source, /stripe_payment_intent_id/i)
-  assert.doesNotMatch(source, /service_role/i)
+test('requests only the minimum browser fields for this Home slice', () => {
+  for (const field of ['full_name', 'amount', 'currency', 'status', 'due_date']) {
+    assert.match(source, new RegExp(`'${field}'`))
+  }
+  for (const forbidden of ['phone', 'address', 'account_id', 'invoice_pdf_url', 'line_items', 'stripe_customer_id', 'stripe_payment_intent_id', 'service_role']) {
+    assert.doesNotMatch(source, new RegExp(forbidden, 'i'))
+  }
 })
 
 test('limits bill history and orders newest due date first', () => {
@@ -30,17 +33,10 @@ test('limits bill history and orders newest due date first', () => {
 })
 
 test('projects only Home-safe account and billing facts', () => {
-  for (const key of [
-    'customerName',
-    'accountId',
-    'planName',
-    'planSpeed',
-    'billAmount',
-    'billCurrency',
-    'billStatus',
-    'billDueDate',
-    'autoPayEnabled',
-  ]) {
+  for (const key of ['customerName', 'billAmount', 'billCurrency', 'billStatus', 'billDueDate']) {
     assert.match(source, new RegExp(`${key}:`))
+  }
+  for (const key of ['accountId', 'planName', 'planSpeed', 'autoPayEnabled']) {
+    assert.doesNotMatch(source, new RegExp(`${key}:`))
   }
 })

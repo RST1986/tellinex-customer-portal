@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getSupabaseBrowserClient } from './data/supabaseClient'
+import { loadAuthenticatedNetworkHealth, toCustomerHealthModel } from './data/networkHealth'
 import { createAuthenticatedSupportTicket, loadAuthenticatedSupportTickets } from './data/support'
 
 function Surface({ children, ...props }) {
@@ -8,6 +9,91 @@ function Surface({ children, ...props }) {
 
 function Muted({ children }) {
   return <p style={{color:'var(--tlx-muted)',lineHeight:1.55}}>{children}</p>
+}
+
+function formatHealthTime(value) {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  return new Intl.DateTimeFormat('en-JM', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }).format(date)
+}
+
+export function NetworkTab({ enabled }) {
+  const [health, setHealth] = useState(null)
+  const [status, setStatus] = useState(enabled ? 'loading' : 'off')
+
+  useEffect(() => {
+    let cancelled = false
+    if (!enabled) {
+      setHealth(null)
+      setStatus('off')
+      return () => { cancelled = true }
+    }
+
+    setStatus('loading')
+    const load = async () => {
+      try {
+        const row = await loadAuthenticatedNetworkHealth(getSupabaseBrowserClient())
+        if (cancelled) return
+        setHealth(toCustomerHealthModel(row))
+        setStatus('live')
+      } catch {
+        if (cancelled) return
+        setHealth(null)
+        setStatus('unavailable')
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [enabled])
+
+  const unknown = status === 'live' && (!health || health.state === 'unknown')
+  const stateLabel = health?.state === 'healthy' ? 'Healthy'
+    : health?.state === 'degraded' ? 'Degraded'
+      : health?.state === 'outage' ? 'Outage'
+        : 'Not yet verified'
+
+  return <div style={{padding:'28px 0 90px'}}>
+    <div style={{fontSize:12,color:'var(--tlx-muted)',letterSpacing:'.08em',textTransform:'uppercase'}}>Network</div>
+    <h1 style={{fontSize:'clamp(28px,5vw,42px)',margin:'8px 0 10px'}}>Your network health</h1>
+    <Muted>This surface uses only your authenticated customer health snapshot. It does not use global NOC metrics or location-based outage guesses.</Muted>
+
+    {!enabled && <Surface style={{marginTop:20}}>
+      <strong>Live network health is disabled in this build.</strong>
+      <Muted>No customer health snapshot is requested until the controlled feature flag is enabled.</Muted>
+    </Surface>}
+
+    {enabled && status === 'loading' && <Surface aria-live="polite" style={{marginTop:20}}>Checking your verified network health…</Surface>}
+
+    {enabled && status === 'unavailable' && <Surface aria-live="polite" style={{marginTop:20}}>
+      <strong>Network health is unavailable.</strong>
+      <Muted>Missing telemetry is never interpreted as healthy service.</Muted>
+    </Surface>}
+
+    {enabled && status === 'live' && <>
+      <Surface aria-live="polite" style={{marginTop:20}}>
+        <div style={{fontSize:12,color:'var(--tlx-muted)',marginBottom:6}}>Verified customer state</div>
+        <div style={{fontSize:24,fontWeight:700}}>{stateLabel}</div>
+        <Muted>{unknown ? 'Tellinex does not yet have enough authoritative telemetry to verify your live service health.' : health.health}</Muted>
+      </Surface>
+
+      <div className="tlx-grid" style={{marginTop:12}}>
+        <Surface className="tlx-col-6">
+          <div style={{fontSize:12,color:'var(--tlx-muted)',marginBottom:6}}>Last verified update</div>
+          <div style={{fontSize:17,fontWeight:700}}>{formatHealthTime(health?.updatedAt) || 'Not available'}</div>
+        </Surface>
+        <Surface className="tlx-col-6">
+          <div style={{fontSize:12,color:'var(--tlx-muted)',marginBottom:6}}>Estimated resolution</div>
+          <div style={{fontSize:17,fontWeight:700}}>{health?.state === 'outage' || health?.state === 'degraded' ? (formatHealthTime(health?.estimatedResolutionAt) || 'Not yet available') : 'Not applicable'}</div>
+        </Surface>
+      </div>
+
+      <Surface style={{marginTop:12}}>
+        <strong>What this does not mean</strong>
+        <Muted>Contracted plan speed is not measured throughput. Wi-Fi quality is separate from Internet service health. An unresolved global incident is not shown here unless Tellinex has positively linked it to your service.</Muted>
+      </Surface>
+    </>}
+  </div>
 }
 
 export function ServicesTab({ enabled, service, status }) {
@@ -45,7 +131,7 @@ export function ServicesTab({ enabled, service, status }) {
 
     <Surface style={{marginTop:20}}>
       <strong>Network health</strong>
-      <Muted>Pending telemetry binding. MyTellinex will not infer outages from a city, parish or address match.</Muted>
+      <Muted>Network health has its own customer-scoped contract and remains separate from contracted service details.</Muted>
     </Surface>
   </div>
 }

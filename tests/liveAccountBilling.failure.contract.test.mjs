@@ -11,16 +11,18 @@ const model = {
   ],
 }
 
-test('loading masks Account and Billing values without touching service facts', () => {
+test('loading masks unsupported service facts and Account Billing values', () => {
   const result = maskAccountBillingFacts(model, 'loading')
-  assert.deepEqual(result.facts[0], model.facts[0])
-  assert.deepEqual(result.facts[1], model.facts[1])
+  assert.deepEqual(result.facts[0], ['Internet', 'Pending integration'])
+  assert.deepEqual(result.facts[1], ['Wi-Fi', 'Pending integration'])
   assert.deepEqual(result.facts[2], ['Bill', 'Loading…'])
   assert.deepEqual(result.facts[3], ['Next payment', 'Loading…'])
 })
 
-test('unavailable masks Account and Billing prototype values', () => {
+test('unavailable masks unsupported service facts and Account Billing prototype values', () => {
   const result = maskAccountBillingFacts(model, 'unavailable')
+  assert.deepEqual(result.facts[0], ['Internet', 'Pending integration'])
+  assert.deepEqual(result.facts[1], ['Wi-Fi', 'Pending integration'])
   assert.deepEqual(result.facts[2], ['Bill', 'Unavailable'])
   assert.deepEqual(result.facts[3], ['Next payment', 'Unavailable'])
 })

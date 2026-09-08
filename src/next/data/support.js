@@ -38,6 +38,7 @@ export async function loadAuthenticatedSupport(client) {
     .from('customer_tickets')
     .select(TICKET_COLUMNS)
     .eq('customer_id', customerId)
+    .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(20)
 

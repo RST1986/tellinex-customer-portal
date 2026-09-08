@@ -1,6 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import './txs.css'
 import { HOME_STATES, homeFixtures } from './homeModel'
+import { getSupabaseBrowserClient } from './data/supabaseClient'
+import { loadAuthenticatedAccountBilling, toHomeBillingFacts } from './data/accountBilling'
+import { firstName, projectLiveAccountBilling } from './data/liveAccountBilling'
 
 const toneVar = {
   success: 'var(--tlx-success)',
@@ -74,7 +77,52 @@ const tabs = ['HOME','NETWORK','SERVICES','USAGE','BILLING','SUPPORT']
 export default function MyTellinexNext(){
   const [state, setState] = useState(HOME_STATES.HEALTHY)
   const [wifiSheetOpen, setWifiSheetOpen] = useState(false)
-  const model = useMemo(() => homeFixtures[state], [state])
+  const [liveBilling, setLiveBilling] = useState(null)
+  const [liveBillingStatus, setLiveBillingStatus] = useState('off')
+  const liveAccountBillingEnabled = import.meta.env.VITE_MYTELLINEX_LIVE_ACCOUNT_BILLING === 'true'
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (!liveAccountBillingEnabled) {
+      setLiveBilling(null)
+      setLiveBillingStatus('off')
+      return () => { cancelled = true }
+    }
+
+    setLiveBillingStatus('loading')
+
+    loadAuthenticatedAccountBilling(getSupabaseBrowserClient())
+      .then((result) => {
+        if (cancelled) return
+        setLiveBilling(toHomeBillingFacts(result))
+        setLiveBillingStatus('live')
+      })
+      .catch(() => {
+        if (cancelled) return
+        setLiveBilling(null)
+        setLiveBillingStatus('unavailable')
+      })
+
+    return () => { cancelled = true }
+  }, [liveAccountBillingEnabled])
+
+  const prototypeModel = useMemo(() => homeFixtures[state], [state])
+  const model = useMemo(
+    () => liveBillingStatus === 'live'
+      ? projectLiveAccountBilling(prototypeModel, liveBilling)
+      : prototypeModel,
+    [prototypeModel, liveBilling, liveBillingStatus],
+  )
+
+  const greetingName = liveBillingStatus === 'live' ? firstName(liveBilling?.customerName) : null
+  const runtimeLabel = liveBillingStatus === 'live'
+    ? 'Prototype health · live Account/Billing'
+    : liveBillingStatus === 'loading'
+      ? 'Prototype health · loading Account/Billing'
+      : liveBillingStatus === 'unavailable'
+        ? 'Prototype state · Account/Billing unavailable'
+        : 'Prototype state · no production telemetry'
 
   const changeState = (nextState) => {
     setWifiSheetOpen(false)
@@ -88,12 +136,12 @@ export default function MyTellinexNext(){
           <div style={{fontSize:12,color:'var(--tlx-muted)',letterSpacing:'.08em',textTransform:'uppercase'}}>MyTellinex</div>
           <div style={{fontSize:22,fontWeight:700,marginTop:4}}>Customer Home</div>
         </div>
-        <div style={{fontSize:12,color:'var(--tlx-muted)'}}>Prototype state · no production telemetry</div>
+        <div style={{fontSize:12,color:'var(--tlx-muted)'}}>{runtimeLabel}</div>
       </div>
     </header>
 
     <main className="tlx-wrap" style={{paddingTop:10}}>
-      <div style={{fontSize:14,color:'var(--tlx-muted)',marginTop:16}}>Good evening, Rui</div>
+      <div style={{fontSize:14,color:'var(--tlx-muted)',marginTop:16}}>{greetingName ? `Welcome back, ${greetingName}` : 'Welcome back'}</div>
       <HealthSentence text={model.health} tone={model.tone} />
       <ExceptionStack items={model.exceptions} />
       <FactRow facts={model.facts} />
@@ -109,7 +157,7 @@ export default function MyTellinexNext(){
 
     <nav aria-label="MyTellinex primary" style={{position:'sticky',bottom:0,borderTop:'1px solid var(--tlx-border)',background:'var(--tlx-bg)'}}>
       <div className="tlx-wrap" style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:4,paddingTop:10,paddingBottom:10}}>
-        {tabs.map(tab => <button key={tab} type="button" style={{border:0,background:tab==='HOME'?'var(--tlx-surface-2)':'transparent',color:tab==='HOME'?'var(--tlx-text)':'var(--tlx-muted)',padding:'10px 6px',borderRadius:'var(--tlx-radius-md)',fontSize:11,fontWeight:700}}>{tab}</button>)}
+        {tabs.map(tab => <button key={tab} type="button" aria-current={tab === 'HOME' ? 'page' : undefined} style={{border:0,background:tab==='HOME'?'var(--tlx-surface-2)':'transparent',color:tab==='HOME'?'var(--tlx-text)':'var(--tlx-muted)',padding:'10px 6px',borderRadius:'var(--tlx-radius-md)',fontSize:11,fontWeight:700}}>{tab}</button>)}
       </div>
     </nav>
 

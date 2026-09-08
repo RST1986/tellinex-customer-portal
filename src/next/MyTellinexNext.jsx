@@ -8,8 +8,8 @@ const toneVar = {
   danger: 'var(--tlx-danger)',
 }
 
-const Button = ({ children }) => (
-  <button type="button" style={{border:'1px solid var(--tlx-border)',borderRadius:'var(--tlx-radius-md)',background:'var(--tlx-surface-2)',color:'var(--tlx-text)',padding:'10px 14px',fontWeight:700,cursor:'pointer'}}>{children}</button>
+const Button = ({ children, onClick, primary = false }) => (
+  <button type="button" onClick={onClick} style={{border:'1px solid var(--tlx-border)',borderRadius:'var(--tlx-radius-md)',background:primary?'var(--tlx-primary)':'var(--tlx-surface-2)',color:primary?'var(--tlx-primary-contrast)':'var(--tlx-text)',padding:'10px 14px',fontWeight:700,cursor:'pointer'}}>{children}</button>
 )
 
 function HealthSentence({ text, tone }) {
@@ -39,19 +39,47 @@ function FactRow({ facts }) {
   </section>
 }
 
-function ActionRail({ actions }) {
+function WifiImprovementSheet({ onClose }) {
+  return <section role="dialog" aria-modal="true" aria-labelledby="wifi-offer-title" style={{position:'fixed',inset:0,zIndex:30,display:'grid',alignItems:'end',background:'rgba(0,0,0,.48)'}}>
+    <div style={{background:'var(--tlx-bg)',borderTop:'1px solid var(--tlx-border)',padding:'24px max(20px,calc((100vw - 760px)/2)) 30px'}}>
+      <div style={{fontSize:12,color:'var(--tlx-muted)',letterSpacing:'.08em',textTransform:'uppercase'}}>Network · optional improvement</div>
+      <h2 id="wifi-offer-title" style={{fontSize:26,margin:'8px 0 10px'}}>Improve Wi-Fi coverage in your home</h2>
+      <p style={{maxWidth:720,color:'var(--tlx-muted)',lineHeight:1.6,margin:'0 0 14px'}}>Your fibre line is working. Some devices have weak Wi-Fi coverage. A Tellinex-supported extender or managed mesh may improve in-home coverage.</p>
+      <div style={{background:'var(--tlx-surface)',border:'1px solid var(--tlx-border)',borderRadius:'var(--tlx-radius-lg)',padding:'var(--tlx-space-5)',marginBottom:16}}>
+        <strong>This is optional.</strong>
+        <p style={{margin:'6px 0 0',color:'var(--tlx-muted)',lineHeight:1.55}}>This does not change your broadband plan, guarantee contracted WAN speed, fix a street outage, or replace outage and fault support.</p>
+      </div>
+      <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+        <Button primary onClick={onClose}>View options later</Button>
+        <Button onClick={onClose}>Dismiss</Button>
+        <Button onClick={onClose}>Don’t show again</Button>
+      </div>
+      <p style={{fontSize:12,color:'var(--tlx-muted)',margin:'14px 0 0'}}>Prototype only · checkout disabled · READY_FOR_PRODUCTION = NO</p>
+    </div>
+  </section>
+}
+
+function ActionRail({ actions, state, onWifiImprove }) {
   if (!actions.length) return <p style={{margin:'4px 0 22px',color:'var(--tlx-muted)',fontSize:13}}>Nothing needs your attention.</p>
   return <section aria-label="Contextual actions" style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:26}}>
-    {actions.slice(0,3).map(action => <Button key={action}>{action}</Button>)}
+    {actions.slice(0,3).map(action => {
+      const wifiAction = state === HOME_STATES.WIFI_WEAK && action === 'Improve Wi-Fi'
+      return <Button key={action} onClick={wifiAction ? onWifiImprove : undefined}>{wifiAction ? 'Improve Wi-Fi coverage' : action}</Button>
+    })}
   </section>
 }
 
 const tabs = ['HOME','NETWORK','SERVICES','USAGE','BILLING','SUPPORT']
 
 export default function MyTellinexNext(){
-  const initialState = import.meta.env.DEV ? HOME_STATES.HEALTHY : HOME_STATES.HEALTHY
-  const [state, setState] = useState(initialState)
+  const [state, setState] = useState(HOME_STATES.HEALTHY)
+  const [wifiSheetOpen, setWifiSheetOpen] = useState(false)
   const model = useMemo(() => homeFixtures[state], [state])
+
+  const changeState = (nextState) => {
+    setWifiSheetOpen(false)
+    setState(nextState)
+  }
 
   return <div className="tlx-shell">
     <header style={{borderBottom:'1px solid var(--tlx-border)'}}>
@@ -69,12 +97,12 @@ export default function MyTellinexNext(){
       <HealthSentence text={model.health} tone={model.tone} />
       <ExceptionStack items={model.exceptions} />
       <FactRow facts={model.facts} />
-      <ActionRail actions={model.actions} />
+      <ActionRail actions={model.actions} state={state} onWifiImprove={() => setWifiSheetOpen(true)} />
 
       {import.meta.env.DEV && <section aria-label="Prototype state selector" style={{borderTop:'1px solid var(--tlx-border)',paddingTop:18,marginTop:8,marginBottom:24}}>
         <div style={{fontSize:12,color:'var(--tlx-muted)',marginBottom:10}}>Prototype states</div>
         <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-          {Object.keys(homeFixtures).map(key => <button key={key} type="button" onClick={() => setState(key)} style={{border:'1px solid var(--tlx-border)',background:key===state?'var(--tlx-primary)':'var(--tlx-surface)',color:key===state?'var(--tlx-primary-contrast)':'var(--tlx-text)',padding:'8px 10px',borderRadius:'var(--tlx-radius-md)',cursor:'pointer',fontSize:12,fontWeight:700}}>{key}</button>)}
+          {Object.keys(homeFixtures).map(key => <button key={key} type="button" onClick={() => changeState(key)} style={{border:'1px solid var(--tlx-border)',background:key===state?'var(--tlx-primary)':'var(--tlx-surface)',color:key===state?'var(--tlx-primary-contrast)':'var(--tlx-text)',padding:'8px 10px',borderRadius:'var(--tlx-radius-md)',cursor:'pointer',fontSize:12,fontWeight:700}}>{key}</button>)}
         </div>
       </section>}
     </main>
@@ -84,5 +112,7 @@ export default function MyTellinexNext(){
         {tabs.map(tab => <button key={tab} type="button" style={{border:0,background:tab==='HOME'?'var(--tlx-surface-2)':'transparent',color:tab==='HOME'?'var(--tlx-text)':'var(--tlx-muted)',padding:'10px 6px',borderRadius:'var(--tlx-radius-md)',fontSize:11,fontWeight:700}}>{tab}</button>)}
       </div>
     </nav>
+
+    {import.meta.env.DEV && wifiSheetOpen && <WifiImprovementSheet onClose={() => setWifiSheetOpen(false)} />}
   </div>
 }

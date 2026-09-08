@@ -6,9 +6,24 @@ const NETWORK_HEALTH_COLUMNS = [
   'updated_at',
 ].join(',')
 
+export const DEFAULT_NETWORK_HEALTH_MAX_AGE_MS = 5 * 60 * 1000
+const MAX_FUTURE_CLOCK_SKEW_MS = 60 * 1000
+
 function assertClient(client) {
   if (!client?.auth?.getClaims || !client?.from) {
     throw new Error('A configured Supabase client is required.')
+  }
+}
+
+function unknownModel(row, health = 'Service health pending integration') {
+  return {
+    state: 'unknown',
+    tone: 'warning',
+    health,
+    summary: row?.summary ?? null,
+    estimatedResolutionAt: null,
+    startedAt: null,
+    updatedAt: row?.updated_at ?? null,
   }
 }
 
@@ -31,17 +46,25 @@ export async function loadAuthenticatedNetworkHealth(client) {
   return result.data ?? null
 }
 
-export function toCustomerHealthModel(row) {
-  if (!row || row.state === 'unknown') {
-    return {
-      state: 'unknown',
-      tone: 'warning',
-      health: 'Service health pending integration',
-      summary: row?.summary ?? null,
-      estimatedResolutionAt: null,
-      startedAt: null,
-      updatedAt: row?.updated_at ?? null,
-    }
+export function toCustomerHealthModel(
+  row,
+  {
+    nowMs = Date.now(),
+    maxAgeMs = DEFAULT_NETWORK_HEALTH_MAX_AGE_MS,
+  } = {},
+) {
+  if (!row || row.state === 'unknown') return unknownModel(row)
+
+  const updatedAtMs = Date.parse(row.updated_at ?? '')
+  const ageMs = nowMs - updatedAtMs
+  const fresh = Number.isFinite(updatedAtMs)
+    && Number.isFinite(maxAgeMs)
+    && maxAgeMs >= 0
+    && ageMs <= maxAgeMs
+    && ageMs >= -MAX_FUTURE_CLOCK_SKEW_MS
+
+  if (!fresh) {
+    return unknownModel(row, 'Service health data is temporarily unavailable')
   }
 
   if (row.state === 'healthy') {

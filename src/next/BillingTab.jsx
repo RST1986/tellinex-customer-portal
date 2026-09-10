@@ -3,6 +3,7 @@ import { getSupabaseBrowserClient } from './data/supabaseClient'
 import { loadAuthenticatedAccountBilling } from './data/accountBilling'
 import { TlxAlertBanner } from './registry/TlxAlertBanner'
 import { TlxEmptyState } from './registry/TlxEmptyState'
+import { TlxLoadingState } from './registry/TlxLoadingState'
 import { TlxStatusBadge } from './registry/TlxStatusBadge'
 import { TlxSurfaceCard as Surface } from './registry/TlxSurfaceCard'
 
@@ -105,7 +106,7 @@ export default function BillingTab({ enabled }) {
       <Muted>No billing rows are requested until the controlled Account + Billing feature flag is enabled.</Muted>
     </Surface>}
 
-    {enabled && status === 'loading' && <Surface aria-live="polite" style={{marginTop:20}}>Loading your bills…</Surface>}
+    {enabled && status === 'loading' && <TlxLoadingState label="Loading your bills…" detail="Retrieving billing records for this authenticated account." style={{marginTop:20}} />}
 
     {enabled && status === 'unavailable' && <TlxAlertBanner tone="warning" title="Billing is unavailable." style={{marginTop:20}}>
       MyTellinex will not fall back to prototype bill amounts while live billing is enabled.

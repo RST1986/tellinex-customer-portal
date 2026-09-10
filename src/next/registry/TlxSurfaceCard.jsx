@@ -1,6 +1,6 @@
 // Governed copy from RST1986/tellinex-frontend/ui-registry/src/components/TlxSurfaceCard.jsx
 // Source blob: ad7a3f6187dd56c43637172dcf6b32bb11be59f8
-// Authority: TXS / Quiet Instrument. Do not replace from 21st.dev directly.
+// Authority: TXS / Quiet Instrument. Do not replace directly from an external marketplace.
 import React from "react";
 
 export function TlxSurfaceCard({ title, description, children, className = "", ...props }) {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getSupabaseBrowserClient } from './data/supabaseClient'
 import { loadAuthenticatedAccountBilling } from './data/accountBilling'
+import { TlxEmptyState } from './registry/TlxEmptyState'
 import { TlxStatusBadge } from './registry/TlxStatusBadge'
 import { TlxSurfaceCard as Surface } from './registry/TlxSurfaceCard'
 
@@ -124,7 +125,7 @@ export default function BillingTab({ enabled }) {
 
       <section aria-label="Billing history" style={{marginTop:24}}>
         <h2 style={{fontSize:20,margin:'0 0 12px'}}>Billing history</h2>
-        {bills.length === 0 && <Muted>No billing records yet.</Muted>}
+        {bills.length === 0 && <TlxEmptyState title="No billing records yet." description="No billing records are available for this authenticated account yet." />}
         {bills.length > 0 && <div style={{display:'grid',gap:10}}>{bills.map((bill,index) => <BillRow key={`${bill.due_date || 'bill'}-${index}`} bill={bill} />)}</div>}
       </section>
     </>}

@@ -1,6 +1,6 @@
 // Governed copy from RST1986/tellinex-frontend/ui-registry/src/components/TlxStatusBadge.jsx
 // Source blob: 887d0e5228ea1f4d2d1fd777abc786ca2aa9e71a
-// Authority: TXS / Quiet Instrument. Do not replace from 21st.dev directly.
+// Authority: TXS / Quiet Instrument. Do not replace directly from an external marketplace.
 import React from "react";
 
 const STATUS_STYLES = {

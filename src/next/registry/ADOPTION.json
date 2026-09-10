@@ -1,0 +1,35 @@
+{
+  "authority": "TXS / Quiet Instrument",
+  "sourceRepository": "RST1986/tellinex-frontend",
+  "sourcePath": "ui-registry",
+  "direct21stImportsAllowed": false,
+  "productionDefaultChanged": false,
+  "featureFlag": "VITE_MYTELLINEX_NEXT=true",
+  "components": [
+    {
+      "name": "tlx-button",
+      "localPath": "src/next/registry/TlxButton.jsx",
+      "sourceBlob": "6482e2f7db8e1d62ca6172bee1b344bef0929605",
+      "state": "STAGED"
+    },
+    {
+      "name": "tlx-surface-card",
+      "localPath": "src/next/registry/TlxSurfaceCard.jsx",
+      "sourceBlob": "ad7a3f6187dd56c43637172dcf6b32bb11be59f8",
+      "state": "CONSUMED",
+      "consumers": ["src/next/components/ServiceCard.jsx"]
+    },
+    {
+      "name": "tlx-status-badge",
+      "localPath": "src/next/registry/TlxStatusBadge.jsx",
+      "sourceBlob": "887d0e5228ea1f4d2d1fd777abc786ca2aa9e71a",
+      "state": "STAGED"
+    }
+  ],
+  "nextTargets": [
+    "NetworkTab status and unknown-state presentation",
+    "Billing summary status presentation",
+    "MyTellinex primary navigation",
+    "Contextual action buttons"
+  ]
+}

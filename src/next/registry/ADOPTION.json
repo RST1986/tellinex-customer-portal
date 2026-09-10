@@ -29,11 +29,19 @@
         "src/next/CustomerTabs.jsx",
         "src/next/BillingTab.jsx"
       ]
+    },
+    {
+      "name": "tlx-navigation",
+      "localPath": "src/next/registry/TlxNavigation.jsx",
+      "sourceBlob": "35da63babf8c9cd8e290aa55ee3a61bd0ed6ed00",
+      "state": "CONSUMED",
+      "consumers": ["src/next/MyTellinexNext.jsx"],
+      "layout": "dock"
     }
   ],
   "nextTargets": [
-    "MyTellinex primary navigation",
     "Support request action button",
-    "Shared surface primitive consolidation"
+    "Shared surface primitive consolidation",
+    "Empty/loading/unavailable state consolidation"
   ]
 }

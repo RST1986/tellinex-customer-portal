@@ -8,6 +8,7 @@ import { loadAuthenticatedService, toServiceSummary } from './data/service'
 import { NetworkTab, ServicesTab, SupportTab } from './CustomerTabs'
 import BillingTab from './BillingTab'
 import { TlxButton } from './registry/TlxButton'
+import { TlxEmptyState } from './registry/TlxEmptyState'
 import { TlxNavigation } from './registry/TlxNavigation'
 
 const toneVar = {
@@ -106,10 +107,11 @@ function PendingTab({ tab }) {
   return <div style={{padding:'28px 0 90px'}}>
     <div style={{fontSize:12,color:'var(--tlx-muted)',letterSpacing:'.08em',textTransform:'uppercase'}}>{tab}</div>
     <h1 style={{fontSize:'clamp(28px,5vw,42px)',margin:'8px 0 10px'}}>{tab[0] + tab.slice(1).toLowerCase()}</h1>
-    <section style={{background:'var(--tlx-surface)',border:'1px solid var(--tlx-border)',borderRadius:'var(--tlx-radius-lg)',padding:'var(--tlx-space-5)',marginTop:20}}>
-      <strong>Pending approved live contract.</strong>
-      <p style={{color:'var(--tlx-muted)',lineHeight:1.55,marginBottom:0}}>MyTellinex will not substitute prototype or global operational data for customer-scoped information.</p>
-    </section>
+    <TlxEmptyState
+      title="Pending approved live contract."
+      description="MyTellinex will not substitute prototype or global operational data for customer-scoped information."
+      style={{marginTop:20}}
+    />
   </div>
 }
 

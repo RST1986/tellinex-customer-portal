@@ -2,11 +2,9 @@ import { useEffect, useState } from 'react'
 import { getSupabaseBrowserClient } from './data/supabaseClient'
 import { loadAuthenticatedNetworkHealth, toCustomerHealthModel } from './data/networkHealth'
 import { createAuthenticatedSupportTicket, loadAuthenticatedSupportTickets } from './data/support'
+import { TlxButton } from './registry/TlxButton'
 import { TlxStatusBadge } from './registry/TlxStatusBadge'
-
-function Surface({ children, ...props }) {
-  return <section {...props} style={{background:'var(--tlx-surface)',border:'1px solid var(--tlx-border)',borderRadius:'var(--tlx-radius-lg)',padding:'var(--tlx-space-5)',...props.style}}>{children}</section>
-}
+import { TlxSurfaceCard as Surface } from './registry/TlxSurfaceCard'
 
 function Muted({ children }) {
   return <p style={{color:'var(--tlx-muted)',lineHeight:1.55}}>{children}</p>
@@ -252,7 +250,7 @@ export function SupportTab({ enabled }) {
           <span style={{fontSize:13,fontWeight:700}}>Details</span>
           <textarea value={description} onChange={event => setDescription(event.target.value)} rows={5} maxLength={4000} style={{padding:12,border:'1px solid var(--tlx-border)',borderRadius:'var(--tlx-radius-md)',background:'var(--tlx-bg)',color:'var(--tlx-text)',resize:'vertical'}} />
         </label>
-        <button type="submit" disabled={submitting} style={{border:0,borderRadius:'var(--tlx-radius-md)',background:'var(--tlx-primary)',color:'var(--tlx-primary-contrast)',padding:'11px 15px',fontWeight:700,cursor:submitting?'wait':'pointer'}}>{submitting ? 'Creating…' : 'Create request'}</button>
+        <TlxButton type="submit" variant="primary" disabled={submitting}>{submitting ? 'Creating…' : 'Create request'}</TlxButton>
         {notice && <p aria-live="polite" style={{fontSize:13,color:'var(--tlx-muted)',margin:'12px 0 0'}}>{notice}</p>}
       </Surface>
     </form>}

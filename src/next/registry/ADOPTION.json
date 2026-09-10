@@ -67,11 +67,22 @@
         "src/next/CustomerTabs.jsx"
       ],
       "semanticScope": "unavailable-state-presentation"
+    },
+    {
+      "name": "tlx-loading-state",
+      "localPath": "src/next/registry/TlxLoadingState.jsx",
+      "sourceBlob": "1de0aad3d6eab846b2f83fa8582805c0b80616b8",
+      "state": "CONSUMED",
+      "consumers": [
+        "src/next/BillingTab.jsx",
+        "src/next/CustomerTabs.jsx"
+      ],
+      "semanticScope": "loading-only"
     }
   ],
   "nextTargets": [
-    "Loading-state consolidation without conflating empty/error states",
     "Support mutation success/error feedback",
-    "Website navigation and AI-chat adoption waves"
+    "Website navigation and AI-chat adoption waves",
+    "Automated measurement of remaining bespoke UI"
   ]
 }

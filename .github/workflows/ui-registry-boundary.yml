@@ -6,6 +6,7 @@ on:
       - 'src/**'
       - 'scripts/check-ui-registry-boundary.mjs'
       - 'scripts/check-ui-registry-adoption.mjs'
+      - 'scripts/check-support-feedback-contract.mjs'
       - 'docs/MYTELLINEX_NEXT.md'
       - '.github/workflows/ui-registry-boundary.yml'
   push:
@@ -14,6 +15,7 @@ on:
       - 'src/**'
       - 'scripts/check-ui-registry-boundary.mjs'
       - 'scripts/check-ui-registry-adoption.mjs'
+      - 'scripts/check-support-feedback-contract.mjs'
       - '.github/workflows/ui-registry-boundary.yml'
 
 permissions:
@@ -31,3 +33,5 @@ jobs:
         run: node scripts/check-ui-registry-boundary.mjs
       - name: Verify approved registry blobs and consumers
         run: node scripts/check-ui-registry-adoption.mjs
+      - name: Verify governed support mutation feedback
+        run: node scripts/check-support-feedback-contract.mjs

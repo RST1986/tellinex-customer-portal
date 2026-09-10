@@ -7,16 +7,13 @@ import { firstName, maskAccountBillingFacts, projectLiveAccountBilling } from '.
 import { loadAuthenticatedService, toServiceSummary } from './data/service'
 import { NetworkTab, ServicesTab, SupportTab } from './CustomerTabs'
 import BillingTab from './BillingTab'
+import { TlxButton } from './registry/TlxButton'
 
 const toneVar = {
   success: 'var(--tlx-success)',
   warning: 'var(--tlx-warning)',
   danger: 'var(--tlx-danger)',
 }
-
-const Button = ({ children, onClick, primary = false }) => (
-  <button type="button" onClick={onClick} style={{border:'1px solid var(--tlx-border)',borderRadius:'var(--tlx-radius-md)',background:primary?'var(--tlx-primary)':'var(--tlx-surface-2)',color:primary?'var(--tlx-primary-contrast)':'var(--tlx-text)',padding:'10px 14px',fontWeight:700,cursor:'pointer'}}>{children}</button>
-)
 
 function HealthSentence({ text, tone }) {
   return <section aria-live="polite" style={{padding:'28px 0 22px'}}>
@@ -85,9 +82,9 @@ function WifiImprovementSheet({ onClose }) {
         <p style={{margin:'6px 0 0',color:'var(--tlx-muted)',lineHeight:1.55}}>This does not change your broadband plan, guarantee contracted WAN speed, fix a street outage, or replace outage and fault support.</p>
       </div>
       <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-        <Button primary onClick={onClose}>View options later</Button>
-        <Button onClick={onClose}>Dismiss</Button>
-        <Button onClick={onClose}>Don’t show again</Button>
+        <TlxButton variant="primary" onClick={onClose}>View options later</TlxButton>
+        <TlxButton variant="secondary" onClick={onClose}>Dismiss</TlxButton>
+        <TlxButton variant="secondary" onClick={onClose}>Don’t show again</TlxButton>
       </div>
       <p style={{fontSize:12,color:'var(--tlx-muted)',margin:'14px 0 0'}}>Prototype only · checkout disabled · READY_FOR_PRODUCTION = NO</p>
     </div>
@@ -99,7 +96,7 @@ function ActionRail({ actions, state, onWifiImprove }) {
   return <section aria-label="Contextual actions" style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:26}}>
     {actions.slice(0,3).map(action => {
       const wifiAction = state === HOME_STATES.WIFI_WEAK && action === 'Improve Wi-Fi'
-      return <Button key={action} onClick={wifiAction ? onWifiImprove : undefined}>{wifiAction ? 'Improve Wi-Fi coverage' : action}</Button>
+      return <TlxButton variant="secondary" key={action} onClick={wifiAction ? onWifiImprove : undefined}>{wifiAction ? 'Improve Wi-Fi coverage' : action}</TlxButton>
     })}
   </section>
 }

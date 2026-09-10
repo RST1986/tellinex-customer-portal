@@ -1,6 +1,3 @@
-// Governed copy from RST1986/tellinex-frontend/ui-registry/src/components/TlxStatusBadge.jsx
-// Source blob: 887d0e5228ea1f4d2d1fd777abc786ca2aa9e71a
-// Authority: TXS / Quiet Instrument. Do not replace directly from an external marketplace.
 import React from "react";
 
 const STATUS_STYLES = {
@@ -31,8 +28,8 @@ const STATUS_STYLES = {
   },
 };
 
-export function TlxStatusBadge({ tone = "neutral", children, className = "", ...props }) {
-  const style = STATUS_STYLES[tone] ?? STATUS_STYLES.neutral;
+export function TlxStatusBadge({ tone = "neutral", children, className = "", style, ...props }) {
+  const toneStyle = STATUS_STYLES[tone] ?? STATUS_STYLES.neutral;
 
   return (
     <span
@@ -49,6 +46,7 @@ export function TlxStatusBadge({ tone = "neutral", children, className = "", ...
         fontWeight: 600,
         lineHeight: 1.4,
         letterSpacing: "0.01em",
+        ...toneStyle,
         ...style,
       }}
       {...props}

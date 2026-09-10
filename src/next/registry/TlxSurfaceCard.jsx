@@ -1,9 +1,13 @@
-// Governed copy from RST1986/tellinex-frontend/ui-registry/src/components/TlxSurfaceCard.jsx
-// Source blob: ad7a3f6187dd56c43637172dcf6b32bb11be59f8
-// Authority: TXS / Quiet Instrument. Do not replace directly from an external marketplace.
 import React from "react";
 
-export function TlxSurfaceCard({ title, description, children, className = "", ...props }) {
+export function TlxSurfaceCard({
+  title,
+  description,
+  children,
+  className = "",
+  style,
+  ...props
+}) {
   return (
     <section
       className={className}
@@ -13,6 +17,7 @@ export function TlxSurfaceCard({ title, description, children, className = "", .
         borderRadius: "var(--tlx-radius-md)",
         padding: "var(--tlx-space-6)",
         color: "var(--tlx-text)",
+        ...style,
       }}
       {...props}
     >

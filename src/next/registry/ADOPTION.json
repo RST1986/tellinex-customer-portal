@@ -66,7 +66,7 @@
         "src/next/BillingTab.jsx",
         "src/next/CustomerTabs.jsx"
       ],
-      "semanticScope": "unavailable-state-presentation"
+      "semanticScope": "unavailable-and-mutation-feedback"
     },
     {
       "name": "tlx-loading-state",
@@ -81,8 +81,8 @@
     }
   ],
   "nextTargets": [
-    "Support mutation success/error feedback",
     "Website navigation and AI-chat adoption waves",
-    "Automated measurement of remaining bespoke UI"
+    "Automated measurement of remaining bespoke UI",
+    "Ticket-list status presentation"
   ]
 }

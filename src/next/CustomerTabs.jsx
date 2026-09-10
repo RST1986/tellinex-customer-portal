@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { getSupabaseBrowserClient } from './data/supabaseClient'
 import { loadAuthenticatedNetworkHealth, toCustomerHealthModel } from './data/networkHealth'
 import { createAuthenticatedSupportTicket, loadAuthenticatedSupportTickets } from './data/support'
+import { TlxStatusBadge } from './registry/TlxStatusBadge'
 
 function Surface({ children, ...props }) {
   return <section {...props} style={{background:'var(--tlx-surface)',border:'1px solid var(--tlx-border)',borderRadius:'var(--tlx-radius-lg)',padding:'var(--tlx-space-5)',...props.style}}>{children}</section>
@@ -16,6 +17,19 @@ function formatHealthTime(value) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return null
   return new Intl.DateTimeFormat('en-JM', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }).format(date)
+}
+
+function healthTone(state) {
+  switch (state) {
+    case 'healthy':
+      return 'success'
+    case 'degraded':
+      return 'warning'
+    case 'outage':
+      return 'danger'
+    default:
+      return 'neutral'
+  }
 }
 
 export function NetworkTab({ enabled }) {
@@ -72,8 +86,8 @@ export function NetworkTab({ enabled }) {
 
     {enabled && status === 'live' && <>
       <Surface aria-live="polite" style={{marginTop:20}}>
-        <div style={{fontSize:12,color:'var(--tlx-muted)',marginBottom:6}}>Verified customer state</div>
-        <div style={{fontSize:24,fontWeight:700}}>{stateLabel}</div>
+        <div style={{fontSize:12,color:'var(--tlx-muted)',marginBottom:8}}>Verified customer state</div>
+        <TlxStatusBadge tone={healthTone(health?.state)}>{stateLabel}</TlxStatusBadge>
         <Muted>{unknown ? 'Tellinex does not yet have enough authoritative telemetry to verify your live service health.' : health.health}</Muted>
       </Surface>
 

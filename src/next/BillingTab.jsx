@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getSupabaseBrowserClient } from './data/supabaseClient'
 import { loadAuthenticatedAccountBilling } from './data/accountBilling'
+import { TlxStatusBadge } from './registry/TlxStatusBadge'
 
 function Surface({ children, ...props }) {
   return <section {...props} style={{background:'var(--tlx-surface)',border:'1px solid var(--tlx-border)',borderRadius:'var(--tlx-radius-lg)',padding:'var(--tlx-space-5)',...props.style}}>{children}</section>
@@ -28,11 +29,29 @@ function formatDate(value) {
   return new Intl.DateTimeFormat('en-JM', { day:'numeric', month:'short', year:'numeric' }).format(date)
 }
 
+function billStatusTone(status) {
+  switch (String(status || '').toLowerCase()) {
+    case 'paid':
+    case 'settled':
+      return 'success'
+    case 'overdue':
+    case 'failed':
+      return 'danger'
+    case 'due':
+    case 'pending':
+    case 'open':
+      return 'warning'
+    default:
+      return 'neutral'
+  }
+}
+
 function BillRow({ bill }) {
+  const statusLabel = bill.status || 'Status unavailable'
   return <Surface>
     <div style={{display:'flex',justifyContent:'space-between',gap:12,alignItems:'baseline',flexWrap:'wrap'}}>
       <strong>{formatMoney(bill.amount, bill.currency)}</strong>
-      <span style={{fontSize:12,color:'var(--tlx-muted)',textTransform:'capitalize'}}>{bill.status || 'Status unavailable'}</span>
+      <TlxStatusBadge tone={billStatusTone(bill.status)} style={{textTransform:'capitalize'}}>{statusLabel}</TlxStatusBadge>
     </div>
     <div style={{fontSize:12,color:'var(--tlx-muted)',marginTop:8}}>Due {formatDate(bill.due_date)}</div>
   </Surface>

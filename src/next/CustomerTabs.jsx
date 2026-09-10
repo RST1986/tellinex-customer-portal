@@ -5,6 +5,7 @@ import { createAuthenticatedSupportTicket, loadAuthenticatedSupportTickets } fro
 import { TlxAlertBanner } from './registry/TlxAlertBanner'
 import { TlxButton } from './registry/TlxButton'
 import { TlxEmptyState } from './registry/TlxEmptyState'
+import { TlxLoadingState } from './registry/TlxLoadingState'
 import { TlxStatusBadge } from './registry/TlxStatusBadge'
 import { TlxSurfaceCard as Surface } from './registry/TlxSurfaceCard'
 
@@ -77,7 +78,7 @@ export function NetworkTab({ enabled }) {
       <Muted>No customer health snapshot is requested until the controlled feature flag is enabled.</Muted>
     </Surface>}
 
-    {enabled && status === 'loading' && <Surface aria-live="polite" style={{marginTop:20}}>Checking your verified network health…</Surface>}
+    {enabled && status === 'loading' && <TlxLoadingState label="Checking your verified network health…" detail="Waiting for the authenticated customer health snapshot." style={{marginTop:20}} />}
 
     {enabled && status === 'unavailable' && <TlxAlertBanner tone="warning" title="Network health is unavailable." style={{marginTop:20}}>
       Missing telemetry is never interpreted as healthy service.
@@ -129,7 +130,7 @@ export function ServicesTab({ enabled, service, status }) {
       <Muted>No subscription data is requested until the controlled feature flag is enabled.</Muted>
     </Surface>}
 
-    {enabled && status === 'loading' && <Surface aria-live="polite" style={{marginTop:20}}>Loading your service…</Surface>}
+    {enabled && status === 'loading' && <TlxLoadingState label="Loading your service…" detail="Retrieving contracted service details for this authenticated account." style={{marginTop:20}} />}
     {enabled && status === 'unavailable' && <TlxAlertBanner tone="warning" title="Service details are unavailable." style={{marginTop:20}}>
       Network-health claims are not inferred from missing subscription data.
     </TlxAlertBanner>}
@@ -257,7 +258,7 @@ export function SupportTab({ enabled }) {
 
     {enabled && <section aria-label="Your support requests" style={{marginTop:24}}>
       <h2 style={{fontSize:20,margin:'0 0 12px'}}>Your requests</h2>
-      {status === 'loading' && <Muted>Loading support requests…</Muted>}
+      {status === 'loading' && <TlxLoadingState label="Loading support requests…" detail="Retrieving support history for this authenticated account." lines={2} />}
       {status === 'unavailable' && <TlxAlertBanner tone="warning" title="Support requests are unavailable.">
         Existing support requests could not be loaded. This does not imply that your requests were deleted or closed.
       </TlxAlertBanner>}

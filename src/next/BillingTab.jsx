@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getSupabaseBrowserClient } from './data/supabaseClient'
 import { loadAuthenticatedAccountBilling } from './data/accountBilling'
+import { TlxAlertBanner } from './registry/TlxAlertBanner'
 import { TlxEmptyState } from './registry/TlxEmptyState'
 import { TlxStatusBadge } from './registry/TlxStatusBadge'
 import { TlxSurfaceCard as Surface } from './registry/TlxSurfaceCard'
@@ -106,10 +107,9 @@ export default function BillingTab({ enabled }) {
 
     {enabled && status === 'loading' && <Surface aria-live="polite" style={{marginTop:20}}>Loading your bills…</Surface>}
 
-    {enabled && status === 'unavailable' && <Surface aria-live="polite" style={{marginTop:20}}>
-      <strong>Billing is unavailable.</strong>
-      <Muted>MyTellinex will not fall back to prototype bill amounts while live billing is enabled.</Muted>
-    </Surface>}
+    {enabled && status === 'unavailable' && <TlxAlertBanner tone="warning" title="Billing is unavailable." style={{marginTop:20}}>
+      MyTellinex will not fall back to prototype bill amounts while live billing is enabled.
+    </TlxAlertBanner>}
 
     {enabled && status === 'live' && <>
       <div className="tlx-grid" style={{marginTop:20}}>

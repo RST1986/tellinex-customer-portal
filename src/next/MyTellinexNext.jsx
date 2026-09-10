@@ -8,6 +8,7 @@ import { loadAuthenticatedService, toServiceSummary } from './data/service'
 import { NetworkTab, ServicesTab, SupportTab } from './CustomerTabs'
 import BillingTab from './BillingTab'
 import { TlxButton } from './registry/TlxButton'
+import { TlxNavigation } from './registry/TlxNavigation'
 
 const toneVar = {
   success: 'var(--tlx-success)',
@@ -113,6 +114,7 @@ function PendingTab({ tab }) {
 }
 
 const tabs = ['HOME','NETWORK','SERVICES','USAGE','BILLING','SUPPORT']
+const navigationItems = tabs.map(tab => ({ id: tab, label: tab }))
 
 export default function MyTellinexNext(){
   const [activeTab, setActiveTab] = useState('HOME')
@@ -248,11 +250,17 @@ export default function MyTellinexNext(){
       {!['HOME','NETWORK','SERVICES','BILLING','SUPPORT'].includes(activeTab) && <PendingTab tab={activeTab} />}
     </main>
 
-    <nav aria-label="MyTellinex primary" style={{position:'sticky',bottom:0,borderTop:'1px solid var(--tlx-border)',background:'var(--tlx-bg)'}}>
-      <div className="tlx-wrap" style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:4,paddingTop:10,paddingBottom:10}}>
-        {tabs.map(tab => <button key={tab} type="button" onClick={() => { setWifiSheetOpen(false); setActiveTab(tab) }} aria-current={tab === activeTab ? 'page' : undefined} style={{border:0,background:tab===activeTab?'var(--tlx-surface-2)':'transparent',color:tab===activeTab?'var(--tlx-text)':'var(--tlx-muted)',padding:'10px 6px',borderRadius:'var(--tlx-radius-md)',fontSize:11,fontWeight:700,cursor:'pointer'}}>{tab}</button>)}
-      </div>
-    </nav>
+    <TlxNavigation
+      layout="dock"
+      ariaLabel="MyTellinex primary"
+      items={navigationItems}
+      activeId={activeTab}
+      onNavigate={(tab) => {
+        setWifiSheetOpen(false)
+        setActiveTab(tab)
+      }}
+      contentClassName="tlx-wrap"
+    />
 
     {import.meta.env.DEV && activeTab === 'HOME' && !liveDataEnabled && wifiSheetOpen && <WifiImprovementSheet onClose={() => setWifiSheetOpen(false)} />}
   </div>

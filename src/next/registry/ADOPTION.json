@@ -30,7 +30,7 @@
     {
       "name": "tlx-status-badge",
       "localPath": "src/next/registry/TlxStatusBadge.jsx",
-      "sourceBlob": "887d0e5228ea1f4d2d1fd777abc786ca2aa9e71a",
+      "sourceBlob": "6e5d838766d4316d2b04e3fd955d326fa40b0c44",
       "state": "CONSUMED",
       "consumers": [
         "src/next/CustomerTabs.jsx",
@@ -44,11 +44,23 @@
       "state": "CONSUMED",
       "consumers": ["src/next/MyTellinexNext.jsx"],
       "layout": "dock"
+    },
+    {
+      "name": "tlx-empty-state",
+      "localPath": "src/next/registry/TlxEmptyState.jsx",
+      "sourceBlob": "69031d96ca7b8df177e8f32e1d0119c3c18e39e0",
+      "state": "CONSUMED",
+      "consumers": [
+        "src/next/MyTellinexNext.jsx",
+        "src/next/BillingTab.jsx",
+        "src/next/CustomerTabs.jsx"
+      ],
+      "semanticScope": "empty-or-pending-only"
     }
   ],
   "nextTargets": [
-    "Empty/loading/unavailable state consolidation",
-    "Registry status-badge style merge hardening",
-    "Website primitive adoption wave"
+    "Alert/loading/unavailable semantic consolidation",
+    "MyTellinex registry drift check",
+    "Website navigation and AI-chat adoption waves"
   ]
 }

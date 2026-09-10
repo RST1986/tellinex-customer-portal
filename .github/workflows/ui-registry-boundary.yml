@@ -5,6 +5,7 @@ on:
     paths:
       - 'src/**'
       - 'scripts/check-ui-registry-boundary.mjs'
+      - 'scripts/check-ui-registry-adoption.mjs'
       - 'docs/MYTELLINEX_NEXT.md'
       - '.github/workflows/ui-registry-boundary.yml'
   push:
@@ -12,6 +13,7 @@ on:
     paths:
       - 'src/**'
       - 'scripts/check-ui-registry-boundary.mjs'
+      - 'scripts/check-ui-registry-adoption.mjs'
       - '.github/workflows/ui-registry-boundary.yml'
 
 permissions:
@@ -27,3 +29,5 @@ jobs:
           node-version: '22'
       - name: Reject direct 21st.dev product imports
         run: node scripts/check-ui-registry-boundary.mjs
+      - name: Verify approved registry blobs and consumers
+        run: node scripts/check-ui-registry-adoption.mjs

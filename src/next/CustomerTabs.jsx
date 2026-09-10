@@ -3,6 +3,7 @@ import { getSupabaseBrowserClient } from './data/supabaseClient'
 import { loadAuthenticatedNetworkHealth, toCustomerHealthModel } from './data/networkHealth'
 import { createAuthenticatedSupportTicket, loadAuthenticatedSupportTickets } from './data/support'
 import { TlxButton } from './registry/TlxButton'
+import { TlxEmptyState } from './registry/TlxEmptyState'
 import { TlxStatusBadge } from './registry/TlxStatusBadge'
 import { TlxSurfaceCard as Surface } from './registry/TlxSurfaceCard'
 
@@ -259,7 +260,7 @@ export function SupportTab({ enabled }) {
       <h2 style={{fontSize:20,margin:'0 0 12px'}}>Your requests</h2>
       {status === 'loading' && <Muted>Loading support requests…</Muted>}
       {status === 'unavailable' && <Muted>Support requests are unavailable right now.</Muted>}
-      {status === 'live' && tickets.length === 0 && <Muted>No support requests yet.</Muted>}
+      {status === 'live' && tickets.length === 0 && <TlxEmptyState title="No support requests yet." description="This authenticated account has no support requests yet." />}
       {tickets.length > 0 && <div style={{display:'grid',gap:10}}>{tickets.map(ticket => <TicketRow key={ticket.id} ticket={ticket} />)}</div>}
     </section>}
   </div>

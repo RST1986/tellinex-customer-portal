@@ -11,14 +11,21 @@
       "localPath": "src/next/registry/TlxButton.jsx",
       "sourceBlob": "6482e2f7db8e1d62ca6172bee1b344bef0929605",
       "state": "CONSUMED",
-      "consumers": ["src/next/MyTellinexNext.jsx"]
+      "consumers": [
+        "src/next/MyTellinexNext.jsx",
+        "src/next/CustomerTabs.jsx"
+      ]
     },
     {
       "name": "tlx-surface-card",
       "localPath": "src/next/registry/TlxSurfaceCard.jsx",
-      "sourceBlob": "ad7a3f6187dd56c43637172dcf6b32bb11be59f8",
+      "sourceBlob": "3e563423718ccc5158efb34ed8a4bc503c969b9f",
       "state": "CONSUMED",
-      "consumers": ["src/next/components/ServiceCard.jsx"]
+      "consumers": [
+        "src/next/components/ServiceCard.jsx",
+        "src/next/CustomerTabs.jsx",
+        "src/next/BillingTab.jsx"
+      ]
     },
     {
       "name": "tlx-status-badge",
@@ -40,8 +47,8 @@
     }
   ],
   "nextTargets": [
-    "Support request action button",
-    "Shared surface primitive consolidation",
-    "Empty/loading/unavailable state consolidation"
+    "Empty/loading/unavailable state consolidation",
+    "Registry status-badge style merge hardening",
+    "Website primitive adoption wave"
   ]
 }

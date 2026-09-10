@@ -65,3 +65,20 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+
+  required-gate:
+    name: mytellinex-next-gate
+    needs: build
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every MyTellinex build variant
+        env:
+          MATRIX_RESULT: ${{ needs.build.result }}
+        run: |
+          echo "MyTellinex matrix result: $MATRIX_RESULT"
+          if [ "$MATRIX_RESULT" != "success" ]; then
+            echo "::error::At least one MyTellinex feature-state build failed or was cancelled"
+            exit 1
+          fi
+          echo "MYTELLINEX_NEXT_GATE=PASS"

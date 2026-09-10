@@ -1,6 +1,3 @@
-// Governed copy from RST1986/tellinex-frontend/ui-registry/src/components/TlxButton.jsx
-// Source blob: 6482e2f7db8e1d62ca6172bee1b344bef0929605
-// Authority: TXS / Quiet Instrument. Do not replace directly from an external marketplace.
 import React from "react";
 
 export function TlxButton({ variant = "primary", className = "", ...props }) {

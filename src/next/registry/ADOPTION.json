@@ -24,12 +24,16 @@
       "name": "tlx-status-badge",
       "localPath": "src/next/registry/TlxStatusBadge.jsx",
       "sourceBlob": "887d0e5228ea1f4d2d1fd777abc786ca2aa9e71a",
-      "state": "STAGED"
+      "state": "CONSUMED",
+      "consumers": [
+        "src/next/CustomerTabs.jsx",
+        "src/next/BillingTab.jsx"
+      ]
     }
   ],
   "nextTargets": [
-    "NetworkTab status and unknown-state presentation",
-    "Billing summary status presentation",
-    "MyTellinex primary navigation"
+    "MyTellinex primary navigation",
+    "Support request action button",
+    "Shared surface primitive consolidation"
   ]
 }

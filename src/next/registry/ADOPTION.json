@@ -10,7 +10,8 @@
       "name": "tlx-button",
       "localPath": "src/next/registry/TlxButton.jsx",
       "sourceBlob": "6482e2f7db8e1d62ca6172bee1b344bef0929605",
-      "state": "STAGED"
+      "state": "CONSUMED",
+      "consumers": ["src/next/MyTellinexNext.jsx"]
     },
     {
       "name": "tlx-surface-card",
@@ -29,7 +30,6 @@
   "nextTargets": [
     "NetworkTab status and unknown-state presentation",
     "Billing summary status presentation",
-    "MyTellinex primary navigation",
-    "Contextual action buttons"
+    "MyTellinex primary navigation"
   ]
 }

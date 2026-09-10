@@ -168,13 +168,14 @@ export function SupportTab({ enabled }) {
   const [ticketType, setTicketType] = useState('general')
   const [description, setDescription] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [notice, setNotice] = useState('')
+  const [notice, setNotice] = useState(null)
 
   useEffect(() => {
     let cancelled = false
     if (!enabled) {
       setTickets([])
       setStatus('off')
+      setNotice(null)
       return () => { cancelled = true }
     }
 
@@ -199,7 +200,7 @@ export function SupportTab({ enabled }) {
     event.preventDefault()
     if (!enabled || submitting) return
     setSubmitting(true)
-    setNotice('')
+    setNotice(null)
     try {
       const ticket = await createAuthenticatedSupportTicket(getSupabaseBrowserClient(), {
         subject,
@@ -212,9 +213,17 @@ export function SupportTab({ enabled }) {
       setDescription('')
       setTicketType('general')
       setStatus('live')
-      setNotice('Support request created.')
+      setNotice({
+        tone: 'success',
+        title: 'Support request created.',
+        detail: 'Your request is confirmed and is now listed in your support history.',
+      })
     } catch {
-      setNotice('Support request could not be created. Try again later.')
+      setNotice({
+        tone: 'danger',
+        title: 'Support request could not be created.',
+        detail: 'No support request was confirmed. Check your connection and try again later.',
+      })
     } finally {
       setSubmitting(false)
     }
@@ -252,7 +261,9 @@ export function SupportTab({ enabled }) {
           <textarea value={description} onChange={event => setDescription(event.target.value)} rows={5} maxLength={4000} style={{padding:12,border:'1px solid var(--tlx-border)',borderRadius:'var(--tlx-radius-md)',background:'var(--tlx-bg)',color:'var(--tlx-text)',resize:'vertical'}} />
         </label>
         <TlxButton type="submit" variant="primary" disabled={submitting}>{submitting ? 'Creating…' : 'Create request'}</TlxButton>
-        {notice && <p aria-live="polite" style={{fontSize:13,color:'var(--tlx-muted)',margin:'12px 0 0'}}>{notice}</p>}
+        {notice && <TlxAlertBanner tone={notice.tone} title={notice.title} style={{marginTop:12}}>
+          {notice.detail}
+        </TlxAlertBanner>}
       </Surface>
     </form>}
 

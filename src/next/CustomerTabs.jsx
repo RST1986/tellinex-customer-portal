@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { getSupabaseBrowserClient } from './data/supabaseClient'
 import { loadAuthenticatedNetworkHealth, toCustomerHealthModel } from './data/networkHealth'
 import { createAuthenticatedSupportTicket, loadAuthenticatedSupportTickets } from './data/support'
+import { TlxAlertBanner } from './registry/TlxAlertBanner'
 import { TlxButton } from './registry/TlxButton'
 import { TlxEmptyState } from './registry/TlxEmptyState'
 import { TlxStatusBadge } from './registry/TlxStatusBadge'
@@ -78,10 +79,9 @@ export function NetworkTab({ enabled }) {
 
     {enabled && status === 'loading' && <Surface aria-live="polite" style={{marginTop:20}}>Checking your verified network health…</Surface>}
 
-    {enabled && status === 'unavailable' && <Surface aria-live="polite" style={{marginTop:20}}>
-      <strong>Network health is unavailable.</strong>
-      <Muted>Missing telemetry is never interpreted as healthy service.</Muted>
-    </Surface>}
+    {enabled && status === 'unavailable' && <TlxAlertBanner tone="warning" title="Network health is unavailable." style={{marginTop:20}}>
+      Missing telemetry is never interpreted as healthy service.
+    </TlxAlertBanner>}
 
     {enabled && status === 'live' && <>
       <Surface aria-live="polite" style={{marginTop:20}}>
@@ -130,10 +130,9 @@ export function ServicesTab({ enabled, service, status }) {
     </Surface>}
 
     {enabled && status === 'loading' && <Surface aria-live="polite" style={{marginTop:20}}>Loading your service…</Surface>}
-    {enabled && status === 'unavailable' && <Surface aria-live="polite" style={{marginTop:20}}>
-      <strong>Service details are unavailable.</strong>
-      <Muted>Network-health claims are not inferred from missing subscription data.</Muted>
-    </Surface>}
+    {enabled && status === 'unavailable' && <TlxAlertBanner tone="warning" title="Service details are unavailable." style={{marginTop:20}}>
+      Network-health claims are not inferred from missing subscription data.
+    </TlxAlertBanner>}
 
     {rows.length > 0 && <div className="tlx-grid" style={{marginTop:20}}>
       {rows.map(([label,value]) => <Surface key={label} className="tlx-col-6">
@@ -259,7 +258,9 @@ export function SupportTab({ enabled }) {
     {enabled && <section aria-label="Your support requests" style={{marginTop:24}}>
       <h2 style={{fontSize:20,margin:'0 0 12px'}}>Your requests</h2>
       {status === 'loading' && <Muted>Loading support requests…</Muted>}
-      {status === 'unavailable' && <Muted>Support requests are unavailable right now.</Muted>}
+      {status === 'unavailable' && <TlxAlertBanner tone="warning" title="Support requests are unavailable.">
+        Existing support requests could not be loaded. This does not imply that your requests were deleted or closed.
+      </TlxAlertBanner>}
       {status === 'live' && tickets.length === 0 && <TlxEmptyState title="No support requests yet." description="This authenticated account has no support requests yet." />}
       {tickets.length > 0 && <div style={{display:'grid',gap:10}}>{tickets.map(ticket => <TicketRow key={ticket.id} ticket={ticket} />)}</div>}
     </section>}

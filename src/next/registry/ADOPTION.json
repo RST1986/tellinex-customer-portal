@@ -56,11 +56,22 @@
         "src/next/CustomerTabs.jsx"
       ],
       "semanticScope": "empty-or-pending-only"
+    },
+    {
+      "name": "tlx-alert-banner",
+      "localPath": "src/next/registry/TlxAlertBanner.jsx",
+      "sourceBlob": "53723643e7ac7afb1a57ebea4e250f1c2bdae00c",
+      "state": "CONSUMED",
+      "consumers": [
+        "src/next/BillingTab.jsx",
+        "src/next/CustomerTabs.jsx"
+      ],
+      "semanticScope": "unavailable-state-presentation"
     }
   ],
   "nextTargets": [
-    "Alert/loading/unavailable semantic consolidation",
-    "MyTellinex registry drift check",
+    "Loading-state consolidation without conflating empty/error states",
+    "Support mutation success/error feedback",
     "Website navigation and AI-chat adoption waves"
   ]
 }

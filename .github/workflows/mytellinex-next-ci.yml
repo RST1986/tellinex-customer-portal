@@ -66,19 +66,41 @@ jobs:
       - run: npm ci
       - run: npm run build
 
+  release-contract:
+    name: production-release-mode-contract
+    runs-on: ubuntu-latest
+    env:
+      TELLINEX_RELEASE_INTENT: production
+      VITE_MYTELLINEX_NEXT: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node --test tests/productionReleaseMode.contract.test.mjs
+      - run: node scripts/check-production-release-config.mjs
+
   required-gate:
     name: mytellinex-next-gate
-    needs: build
+    needs: [build, release-contract]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
-      - name: Require every MyTellinex build variant
+      - name: Require every MyTellinex build variant and production release contract
         env:
           MATRIX_RESULT: ${{ needs.build.result }}
+          RELEASE_CONTRACT_RESULT: ${{ needs.release-contract.result }}
         run: |
           echo "MyTellinex matrix result: $MATRIX_RESULT"
+          echo "Production release contract result: $RELEASE_CONTRACT_RESULT"
           if [ "$MATRIX_RESULT" != "success" ]; then
             echo "::error::At least one MyTellinex feature-state build failed or was cancelled"
+            exit 1
+          fi
+          if [ "$RELEASE_CONTRACT_RESULT" != "success" ]; then
+            echo "::error::MyTellinex production release mode contract failed or was cancelled"
             exit 1
           fi
           echo "MYTELLINEX_NEXT_GATE=PASS"

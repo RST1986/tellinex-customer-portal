@@ -11,6 +11,7 @@ on:
       - 'ci/**'
       - 'chore/**'
       - 'test/**'
+      - 'p0/**'
 
 jobs:
   build:
@@ -21,37 +22,44 @@ jobs:
         include:
           - name: legacy-default
             next_flag: "false"
+            allow_legacy: "true"
             live_account_billing: "false"
             live_service: "false"
             live_support: "false"
           - name: next-prototype
             next_flag: "true"
+            allow_legacy: "false"
             live_account_billing: "false"
             live_service: "false"
             live_support: "false"
           - name: next-live-account-billing
             next_flag: "true"
+            allow_legacy: "false"
             live_account_billing: "true"
             live_service: "false"
             live_support: "false"
           - name: next-live-service
             next_flag: "true"
+            allow_legacy: "false"
             live_account_billing: "false"
             live_service: "true"
             live_support: "false"
           - name: next-live-support
             next_flag: "true"
+            allow_legacy: "false"
             live_account_billing: "false"
             live_service: "false"
             live_support: "true"
           - name: next-live-customer-core
             next_flag: "true"
+            allow_legacy: "false"
             live_account_billing: "true"
             live_service: "true"
             live_support: "true"
     name: build-${{ matrix.name }}
     env:
       VITE_MYTELLINEX_NEXT: ${{ matrix.next_flag }}
+      MYTELLINEX_ALLOW_LEGACY_BUILD: ${{ matrix.allow_legacy }}
       VITE_MYTELLINEX_LIVE_ACCOUNT_BILLING: ${{ matrix.live_account_billing }}
       VITE_MYTELLINEX_LIVE_SERVICE: ${{ matrix.live_service }}
       VITE_MYTELLINEX_LIVE_SUPPORT: ${{ matrix.live_support }}
@@ -64,6 +72,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: node --test tests/*.test.mjs
       - run: npm run build
 
   required-gate:
